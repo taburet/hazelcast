@@ -133,9 +133,7 @@ public class MapContainer {
         initWanReplication(nodeEngine);
         this.extractors = new Extractors(mapConfig.getMapAttributeConfigs(), config.getClassLoader());
         if (shouldUseGlobalIndex(mapConfig)) {
-            this.globalIndexes = new Indexes((InternalSerializationService) serializationService,
-                    mapServiceContext.getIndexProvider(mapConfig), extractors,
-                    true, mapServiceContext.getIndexCopyBehavior());
+            this.globalIndexes = Indexes.createGlobalIndexes(this);
         } else {
             this.globalIndexes = null;
         }
