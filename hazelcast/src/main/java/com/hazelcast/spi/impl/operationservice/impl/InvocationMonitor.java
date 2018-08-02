@@ -352,15 +352,15 @@ public class InvocationMonitor implements Consumer<Packet>, MetricsProvider {
 
         @Override
         public void run0() {
-            heartbeatPerMember.remove(leftMember.getAddress());
-
-            for (Invocation invocation : invocationRegistry) {
-                if (hasTargetLeft(invocation)) {
-                    onTargetLoss(invocation);
-                } else {
-                    onPotentialBackupLoss(invocation);
-                }
-            }
+//            heartbeatPerMember.remove(leftMember.getAddress());
+//
+//            for (Invocation invocation : invocationRegistry) {
+//                if (hasTargetLeft(invocation)) {
+//                    onTargetLoss(invocation);
+//                } else {
+//                    onPotentialBackupLoss(invocation);
+//                }
+//            }
         }
 
         private boolean hasTargetLeft(Invocation invocation) {
