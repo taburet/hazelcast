@@ -20,6 +20,7 @@ import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.BinaryInterface;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.IndexAwarePredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.VisitablePredicate;
@@ -30,11 +31,14 @@ import com.hazelcast.query.impl.QueryableEntry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import static com.hazelcast.internal.serialization.impl.FactoryIdHelper.PREDICATE_DS_FACTORY_ID;
 import static com.hazelcast.query.impl.predicates.PredicateUtils.estimatedSizeOf;
@@ -68,28 +72,93 @@ public final class AndPredicate
         return visitor.visit(this, indexes);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Set<QueryableEntry> filter(QueryContext queryContext) {
         Set<QueryableEntry> smallestResultSet = null;
         List<Set<QueryableEntry>> otherResultSets = null;
         List<Predicate> unindexedPredicates = null;
 
-        for (Predicate predicate : predicates) {
-            if (isIndexedPredicate(predicate, queryContext)) {
-                Set<QueryableEntry> currentResultSet = ((IndexAwarePredicate) predicate).filter(queryContext);
-                if (smallestResultSet == null) {
-                    smallestResultSet = currentResultSet;
-                } else if (estimatedSizeOf(currentResultSet) < estimatedSizeOf(smallestResultSet)) {
-                    otherResultSets = initOrGetListOf(otherResultSets);
-                    otherResultSets.add(smallestResultSet);
-                    smallestResultSet = currentResultSet;
+        // TODO: use more efficient data structure (?)
+        TreeMap<Long, IndexAwarePredicate> estimatedPredicates = null;
+        if (predicates.length > 1) {
+            for (Predicate predicate : predicates) {
+                if (predicate instanceof EstimatingPredicate) {
+                    EstimatingPredicate estimatingPredicate = (EstimatingPredicate) predicate;
+
+                    long estimatedCardinality = estimatingPredicate.estimateCardinality(queryContext);
+                    if (estimatedCardinality == -1) {
+                        if (estimatingPredicate.isIndexed(queryContext)) {
+                            if (otherResultSets == null) {
+                                otherResultSets = new ArrayList<Set<QueryableEntry>>(predicates.length);
+                            }
+                            otherResultSets.add(estimatingPredicate.filter(queryContext));
+                        } else {
+                            if (unindexedPredicates == null) {
+                                unindexedPredicates = new ArrayList<Predicate>(predicates.length);
+                            }
+                            unindexedPredicates.add(estimatingPredicate);
+                        }
+                    } else {
+                        if (estimatedPredicates == null) {
+                            estimatedPredicates = new TreeMap<Long, IndexAwarePredicate>();
+                        }
+                        estimatedPredicates.put(estimatedCardinality, estimatingPredicate);
+                    }
                 } else {
-                    otherResultSets = initOrGetListOf(otherResultSets);
-                    otherResultSets.add(currentResultSet);
+                    if (isIndexedPredicate(predicate, queryContext)) {
+                        if (otherResultSets == null) {
+                            otherResultSets = new ArrayList<Set<QueryableEntry>>(predicates.length);
+                        }
+                        otherResultSets.add(((IndexAwarePredicate) predicate).filter(queryContext));
+                    } else {
+                        if (unindexedPredicates == null) {
+                            unindexedPredicates = new ArrayList<Predicate>(predicates.length);
+                        }
+                        unindexedPredicates.add(predicate);
+                    }
                 }
-            } else {
-                unindexedPredicates = initOrGetListOf(unindexedPredicates);
-                unindexedPredicates.add(predicate);
+            }
+        }
+
+        if (estimatedPredicates == null) {
+            // FIXME: reuse computation result from the previous step
+            for (Predicate predicate : predicates) {
+                if (isIndexedPredicate(predicate, queryContext)) {
+                    Set<QueryableEntry> currentResultSet = ((IndexAwarePredicate) predicate).filter(queryContext);
+                    if (smallestResultSet == null) {
+                        smallestResultSet = currentResultSet;
+                    } else if (estimatedSizeOf(currentResultSet) < estimatedSizeOf(smallestResultSet)) {
+                        otherResultSets = initOrGetListOf(otherResultSets);
+                        otherResultSets.add(smallestResultSet);
+                        smallestResultSet = currentResultSet;
+                    } else {
+                        otherResultSets = initOrGetListOf(otherResultSets);
+                        otherResultSets.add(currentResultSet);
+                    }
+                } else {
+                    unindexedPredicates = initOrGetListOf(unindexedPredicates);
+                    unindexedPredicates.add(predicate);
+                }
+            }
+        } else {
+            Iterator<Map.Entry<Long, IndexAwarePredicate>> iterator = estimatedPredicates.entrySet().iterator();
+            assert iterator.hasNext();
+            smallestResultSet = iterator.next().getValue().filter(queryContext);
+
+            while (iterator.hasNext()) {
+                Map.Entry<Long, IndexAwarePredicate> entry = iterator.next();
+                if (entry.getKey() < smallestResultSet.size() * 10) {
+                    if (otherResultSets == null) {
+                        otherResultSets = new ArrayList<Set<QueryableEntry>>(predicates.length);
+                    }
+                    otherResultSets.add(entry.getValue().filter(queryContext));
+                } else {
+                    if (unindexedPredicates == null) {
+                        unindexedPredicates = new ArrayList<Predicate>(predicates.length);
+                    }
+                    unindexedPredicates.add(entry.getValue());
+                }
             }
         }
 
@@ -238,4 +307,5 @@ public final class AndPredicate
     public int hashCode() {
         return Arrays.hashCode(predicates);
     }
+
 }

@@ -19,6 +19,7 @@ package com.hazelcast.query.impl.predicates;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.BinaryInterface;
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.VisitablePredicate;
 import com.hazelcast.query.impl.Comparables;
@@ -34,7 +35,8 @@ import java.util.Set;
  * Between Predicate
  */
 @BinaryInterface
-public class BetweenPredicate extends AbstractIndexAwarePredicate implements VisitablePredicate, RangePredicate {
+public class BetweenPredicate extends AbstractIndexAwarePredicate
+        implements VisitablePredicate, RangePredicate, EstimatingPredicate {
 
     private static final long serialVersionUID = 1L;
 
@@ -51,6 +53,16 @@ public class BetweenPredicate extends AbstractIndexAwarePredicate implements Vis
         }
         this.from = from;
         this.to = to;
+    }
+
+    @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        Index index = matchIndex(queryContext, QueryContext.IndexMatchHint.PREFER_ORDERED);
+        if (index == null) {
+            return -1;
+        }
+
+        return index.estimateCardinality(from, true, to, true);
     }
 
     @Override

@@ -19,6 +19,7 @@ package com.hazelcast.query.impl.predicates;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.BinaryInterface;
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.impl.Comparables;
 import com.hazelcast.query.impl.Index;
@@ -34,7 +35,8 @@ import static com.hazelcast.query.impl.predicates.PredicateUtils.isNull;
  * Equal Predicate
  */
 @BinaryInterface
-public class EqualPredicate extends AbstractIndexAwarePredicate implements NegatablePredicate, RangePredicate {
+public class EqualPredicate extends AbstractIndexAwarePredicate implements NegatablePredicate, RangePredicate,
+                                                                           EstimatingPredicate {
 
     private static final long serialVersionUID = 1L;
 
@@ -50,6 +52,16 @@ public class EqualPredicate extends AbstractIndexAwarePredicate implements Negat
     public EqualPredicate(String attribute, Comparable value) {
         super(attribute);
         this.value = value;
+    }
+
+    @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        Index index = matchIndex(queryContext, QueryContext.IndexMatchHint.PREFER_UNORDERED);
+        if (index == null) {
+            return -1;
+        }
+
+        return index.estimateCardinality(value);
     }
 
     @Override

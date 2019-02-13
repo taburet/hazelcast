@@ -109,6 +109,8 @@ public interface IndexStore {
      */
     Set<QueryableEntry> getRecords(Comparable value);
 
+    long estimateCardinality(Comparable value);
+
     /**
      * Obtains entries that have indexed attribute value equal to one of the
      * given set of values.
@@ -118,6 +120,8 @@ public interface IndexStore {
      * @see Index#getRecords(Comparable[])
      */
     Set<QueryableEntry> getRecords(Set<Comparable> values);
+
+    long estimateCardinality(Set<Comparable> values);
 
     /**
      * Obtains entries that have indexed attribute value satisfying the given
@@ -129,6 +133,8 @@ public interface IndexStore {
      * @see Index#getRecords(Comparison, Comparable)
      */
     Set<QueryableEntry> getRecords(Comparison comparison, Comparable value);
+
+    long estimateCardinality(Comparison comparison, Comparable value);
 
     /**
      * Obtains entries that have indexed attribute value belonging to the given
@@ -144,5 +150,7 @@ public interface IndexStore {
      * @see Index#getRecords(Comparable, boolean, Comparable, boolean)
      */
     Set<QueryableEntry> getRecords(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive);
+
+    long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive);
 
 }

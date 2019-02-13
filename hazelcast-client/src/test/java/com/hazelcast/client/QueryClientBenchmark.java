@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package com.hazelcast.projection;
+package com.hazelcast.client;
 
+import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.MapConfig;
 import com.hazelcast.config.MapIndexConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.hazelcast.nio.ObjectDataInput;
+import com.hazelcast.nio.ObjectDataOutput;
+import com.hazelcast.nio.serialization.DataSerializableFactory;
+import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
 import com.hazelcast.query.SqlPredicate;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -35,17 +40,17 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
-import java.io.Serializable;
+import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.SECONDS)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Thread)
 @Fork(value = 1, warmups = 0)
 @Warmup(iterations = 5)
 @Measurement(iterations = 15)
-public class QueryBenchmark {
+public class QueryClientBenchmark {
 
     IMap map;
     Random random;
@@ -54,18 +59,35 @@ public class QueryBenchmark {
     public void prepare() {
         random = new Random();
 
+        DataSerializableFactory factory = new DataSerializableFactory() {
+            @Override
+            public IdentifiedDataSerializable create(int typeId) {
+                return new Person();
+            }
+        };
+
         Config config = new Config();
+        config.getSerializationConfig().addDataSerializableFactory(10, factory);
+        config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+        config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true);
         MapConfig mapConfig = new MapConfig("persons");
         config.addMapConfig(mapConfig);
         mapConfig.addMapIndexConfig(new MapIndexConfig("age", true));
         mapConfig.addMapIndexConfig(new MapIndexConfig("iq", false));
 
         HazelcastInstance hz = Hazelcast.newHazelcastInstance(config);
-        map = hz.getMap("persons");
-        for (int k = 0; k < 100000; k++) {
+
+        ClientConfig clientConfig = new ClientConfig();
+        clientConfig.getSerializationConfig().addDataSerializableFactory(10, factory);
+        map = HazelcastClient.newHazelcastClient(clientConfig).getMap("persons");
+
+//        map = hz.getMap("persons");
+        for (int k = 0; k < 10000; k++) {
             Person person = new Person(k, 100);
             map.put(k, person);
         }
+
+        System.out.println("jadhjahd");
     }
 
     @TearDown
@@ -77,7 +99,9 @@ public class QueryBenchmark {
     public void testAllIndices() {
 //        int key = random.nextInt();
 //        map.put(key, new Person(key, 100));
-        map.keySet(new SqlPredicate("age < 10 and iq = 100"));
+//        map.keySet(new SqlPredicate("age < 10 and iq=100"));
+
+        map.keySet(new SqlPredicate("age >= 1 and age < 2"));
     }
 
     @Benchmark
@@ -85,10 +109,13 @@ public class QueryBenchmark {
         map.keySet(new SqlPredicate("age=10 and %iq=100"));
     }
 
-    public static class Person implements Serializable {
+    public static class Person implements IdentifiedDataSerializable {
 
         private int iq;
         private int age;
+
+        public Person() {
+        }
 
         public Person(int age, int iq) {
             this.age = age;
@@ -101,6 +128,28 @@ public class QueryBenchmark {
 
         public int getAge() {
             return age;
+        }
+
+        @Override
+        public int getFactoryId() {
+            return 10;
+        }
+
+        @Override
+        public int getId() {
+            return 10;
+        }
+
+        @Override
+        public void writeData(ObjectDataOutput out) throws IOException {
+            out.writeInt(age);
+//            out.writeInt(iq);
+        }
+
+        @Override
+        public void readData(ObjectDataInput in) throws IOException {
+            age = in.readInt();
+//            iq = in.readInt();
         }
 
         @Override

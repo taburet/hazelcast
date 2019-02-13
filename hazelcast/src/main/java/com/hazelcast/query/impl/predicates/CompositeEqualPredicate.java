@@ -16,6 +16,7 @@
 
 package com.hazelcast.query.impl.predicates;
 
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.IndexAwarePredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.impl.CompositeValue;
@@ -36,7 +37,7 @@ import java.util.Set;
  * values.
  */
 @SuppressFBWarnings("SE_BAD_FIELD")
-public class CompositeEqualPredicate implements Predicate, IndexAwarePredicate {
+public class CompositeEqualPredicate implements Predicate, IndexAwarePredicate, EstimatingPredicate {
 
     final String indexName;
     final String[] components;
@@ -65,6 +66,16 @@ public class CompositeEqualPredicate implements Predicate, IndexAwarePredicate {
         this.indexName = indexName;
         this.components = components;
         this.value = value;
+    }
+
+    @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        Index index = queryContext.matchIndex(indexName, QueryContext.IndexMatchHint.EXACT_NAME);
+        if (index == null) {
+            return -1;
+        }
+
+        return index.estimateCardinality(value);
     }
 
     @SuppressWarnings("unchecked")

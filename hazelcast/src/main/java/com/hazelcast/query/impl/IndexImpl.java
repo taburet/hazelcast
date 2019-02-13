@@ -39,7 +39,7 @@ public class IndexImpl extends AbstractIndex {
 
     @Override
     protected IndexStore createIndexStore(boolean ordered, PerIndexStats stats) {
-        return ordered ? new OrderedIndexStore(copyBehavior) : new UnorderedIndexStore(copyBehavior);
+        return ordered ? new EstimatingOrderedIndexStore(copyBehavior) : new UnorderedIndexStore(copyBehavior);
     }
 
     @Override

@@ -147,6 +147,15 @@ public abstract class AbstractIndex implements InternalIndex {
     }
 
     @Override
+    public long estimateCardinality(Comparable value) {
+        if (converter == null) {
+            return 0;
+        }
+
+        return indexStore.estimateCardinality(convert(value));
+    }
+
+    @Override
     public Set<QueryableEntry> getRecords(Comparable[] values) {
         if (values.length == 1) {
             return getRecords(values[0]);
@@ -170,6 +179,24 @@ public abstract class AbstractIndex implements InternalIndex {
     }
 
     @Override
+    public long estimateCardinality(Comparable[] values) {
+        if (values.length == 1) {
+            return estimateCardinality(values[0]);
+        }
+
+        if (converter == null || values.length == 0) {
+            return 0;
+        }
+
+        Set<Comparable> convertedValues = createHashSet(values.length);
+        for (Comparable value : values) {
+            Comparable converted = convert(value);
+            convertedValues.add(canonicalizeQueryArgumentScalar(converted));
+        }
+        return indexStore.estimateCardinality(convertedValues);
+    }
+
+    @Override
     public Set<QueryableEntry> getRecords(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
         long timestamp = stats.makeTimestamp();
 
@@ -184,6 +211,15 @@ public abstract class AbstractIndex implements InternalIndex {
     }
 
     @Override
+    public long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
+        if (converter == null) {
+            return 0;
+        }
+
+        return indexStore.estimateCardinality(convert(from), fromInclusive, convert(to), toInclusive);
+    }
+
+    @Override
     public Set<QueryableEntry> getRecords(Comparison comparison, Comparable value) {
         long timestamp = stats.makeTimestamp();
 
@@ -195,6 +231,15 @@ public abstract class AbstractIndex implements InternalIndex {
         Set<QueryableEntry> result = indexStore.getRecords(comparison, convert(value));
         stats.onIndexHit(timestamp, result.size());
         return result;
+    }
+
+    @Override
+    public long estimateCardinality(Comparison comparison, Comparable value) {
+        if (converter == null) {
+            return 0;
+        }
+
+        return indexStore.estimateCardinality(comparison, convert(value));
     }
 
     @Override

@@ -34,22 +34,22 @@ public class AndResultSet extends AbstractSet<QueryableEntry> {
 
     private static final int SIZE_UNINITIALIZED = -1;
 
-    private final Set<QueryableEntry> setSmallest;
+    private final Set<QueryableEntry> smallestIndexedResult;
     private final List<Set<QueryableEntry>> otherIndexedResults;
-    private final List<Predicate> lsNoIndexPredicates;
+    private final List<Predicate> unindexedPredicates;
     private int cachedSize;
 
-    public AndResultSet(Set<QueryableEntry> setSmallest, List<Set<QueryableEntry>> otherIndexedResults,
-                        List<Predicate> lsNoIndexPredicates) {
-        this.setSmallest = isNotNull(setSmallest, "setSmallest");
+    public AndResultSet(Set<QueryableEntry> smallestIndexedResult, List<Set<QueryableEntry>> otherIndexedResults,
+                        List<Predicate> unindexedPredicates) {
+        this.smallestIndexedResult = isNotNull(smallestIndexedResult, "smallestIndexedResult");
         this.otherIndexedResults = otherIndexedResults;
-        this.lsNoIndexPredicates = lsNoIndexPredicates;
+        this.unindexedPredicates = unindexedPredicates;
         this.cachedSize = SIZE_UNINITIALIZED;
     }
 
     @Override
     public boolean contains(Object o) {
-        if (!setSmallest.contains(o)) {
+        if (!smallestIndexedResult.contains(o)) {
             return false;
         }
 
@@ -60,8 +60,8 @@ public class AndResultSet extends AbstractSet<QueryableEntry> {
                 }
             }
         }
-        if (lsNoIndexPredicates != null) {
-            for (Predicate noIndexPredicate : lsNoIndexPredicates) {
+        if (unindexedPredicates != null) {
+            for (Predicate noIndexPredicate : unindexedPredicates) {
                 if (!noIndexPredicate.apply((Map.Entry) o)) {
                     return false;
                 }
@@ -78,7 +78,7 @@ public class AndResultSet extends AbstractSet<QueryableEntry> {
     class It implements Iterator<QueryableEntry> {
 
         QueryableEntry currentEntry;
-        final Iterator<QueryableEntry> it = setSmallest.iterator();
+        final Iterator<QueryableEntry> it = smallestIndexedResult.iterator();
 
         @Override
         public boolean hasNext() {
@@ -99,11 +99,11 @@ public class AndResultSet extends AbstractSet<QueryableEntry> {
         }
 
         private boolean checkNoIndexPredicates(QueryableEntry currentEntry) {
-            if (lsNoIndexPredicates == null) {
+            if (unindexedPredicates == null) {
                 return true;
             }
 
-            for (Predicate noIndexPredicate : lsNoIndexPredicates) {
+            for (Predicate noIndexPredicate : unindexedPredicates) {
                 if (!noIndexPredicate.apply(currentEntry)) {
                     return false;
                 }
@@ -140,6 +140,7 @@ public class AndResultSet extends AbstractSet<QueryableEntry> {
         public void remove() {
             throw new UnsupportedOperationException();
         }
+
     }
 
     @Override
@@ -160,10 +161,10 @@ public class AndResultSet extends AbstractSet<QueryableEntry> {
      */
     public int estimatedSize() {
         if (cachedSize == SIZE_UNINITIALIZED) {
-            if (setSmallest == null) {
+            if (smallestIndexedResult == null) {
                 return 0;
             } else {
-                return setSmallest.size();
+                return smallestIndexedResult.size();
             }
         }
         return cachedSize;

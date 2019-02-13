@@ -217,6 +217,13 @@ public class AttributeIndexRegistry {
             return delegate.getRecords(from, false, to, false);
         }
 
+        @Override
+        public long estimateCardinality(Comparable value) {
+            Comparable from = new CompositeValue(width, value, NEGATIVE_INFINITY);
+            Comparable to = new CompositeValue(width, value, POSITIVE_INFINITY);
+            return delegate.estimateCardinality(from, false, to, false);
+        }
+
         @SuppressWarnings("checkstyle:npathcomplexity")
         @Override
         public Set<QueryableEntry> getRecords(Comparable[] values) {
@@ -252,10 +259,50 @@ public class AttributeIndexRegistry {
         }
 
         @Override
+        public long estimateCardinality(Comparable[] values) {
+            if (values.length == 0) {
+                return 0;
+            }
+
+            TypeConverter converter = getConverter();
+            if (converter == null) {
+                return 0;
+            }
+
+            if (values.length == 1) {
+                return estimateCardinality(values[0]);
+            }
+
+            Set<Comparable> convertedValues = new HashSet<Comparable>();
+            for (Comparable value : values) {
+                Comparable converted = converter.convert(value);
+                convertedValues.add(canonicalizeQueryArgumentScalar(converted));
+            }
+
+            if (convertedValues.size() == 1) {
+                return estimateCardinality(convertedValues.iterator().next());
+            }
+
+            long estimate = 0;
+            for (Comparable value : convertedValues) {
+                estimate += estimateCardinality(value);
+            }
+
+            return estimate;
+        }
+
+        @Override
         public Set<QueryableEntry> getRecords(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
             Comparable compositeFrom = new CompositeValue(width, from, fromInclusive ? NEGATIVE_INFINITY : POSITIVE_INFINITY);
             Comparable compositeTo = new CompositeValue(width, to, toInclusive ? POSITIVE_INFINITY : NEGATIVE_INFINITY);
             return delegate.getRecords(compositeFrom, false, compositeTo, false);
+        }
+
+        @Override
+        public long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
+            Comparable compositeFrom = new CompositeValue(width, from, fromInclusive ? NEGATIVE_INFINITY : POSITIVE_INFINITY);
+            Comparable compositeTo = new CompositeValue(width, to, toInclusive ? POSITIVE_INFINITY : NEGATIVE_INFINITY);
+            return delegate.estimateCardinality(compositeFrom, false, compositeTo, false);
         }
 
         @Override
@@ -278,6 +325,30 @@ public class AttributeIndexRegistry {
                     return delegate.getRecords(greaterOrEqualFrom, false, greaterOrEqualTo, false);
                 case GREATER_OR_EQUAL:
                     return delegate.getRecords(GREATER_OR_EQUAL, new CompositeValue(width, value, NEGATIVE_INFINITY));
+                default:
+                    throw new IllegalStateException("unexpected comparison: " + comparison);
+            }
+        }
+
+        @Override
+        public long estimateCardinality(Comparison comparison, Comparable value) {
+            switch (comparison) {
+                case NOT_EQUAL:
+                    long estimate = delegate.estimateCardinality(LESS, new CompositeValue(width, value, NEGATIVE_INFINITY));
+                    estimate += delegate.estimateCardinality(GREATER, new CompositeValue(width, value, POSITIVE_INFINITY));
+                    return estimate;
+                case LESS:
+                    CompositeValue lessFrom = new CompositeValue(width, NULL, POSITIVE_INFINITY);
+                    CompositeValue lessTo = new CompositeValue(width, value, NEGATIVE_INFINITY);
+                    return delegate.estimateCardinality(lessFrom, false, lessTo, false);
+                case GREATER:
+                    return delegate.estimateCardinality(GREATER, new CompositeValue(width, value, POSITIVE_INFINITY));
+                case LESS_OR_EQUAL:
+                    CompositeValue greaterOrEqualFrom = new CompositeValue(width, NULL, POSITIVE_INFINITY);
+                    CompositeValue greaterOrEqualTo = new CompositeValue(width, value, POSITIVE_INFINITY);
+                    return delegate.estimateCardinality(greaterOrEqualFrom, false, greaterOrEqualTo, false);
+                case GREATER_OR_EQUAL:
+                    return delegate.estimateCardinality(GREATER_OR_EQUAL, new CompositeValue(width, value, NEGATIVE_INFINITY));
                 default:
                     throw new IllegalStateException("unexpected comparison: " + comparison);
             }

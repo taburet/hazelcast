@@ -97,6 +97,8 @@ public interface Index {
      */
     Set<QueryableEntry> getRecords(Comparable value);
 
+    long estimateCardinality(Comparable value);
+
     /**
      * Produces a result set containing entries whose attribute values are equal
      * to at least one of the given values.
@@ -105,6 +107,8 @@ public interface Index {
      * @return the produced result set.
      */
     Set<QueryableEntry> getRecords(Comparable[] values);
+
+    long estimateCardinality(Comparable[] values);
 
     /**
      * Produces a result set by performing a range query on this index with the
@@ -120,6 +124,8 @@ public interface Index {
      */
     Set<QueryableEntry> getRecords(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive);
 
+    long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive);
+
     /**
      * Produces a result set containing entries whose attribute values are
      * satisfy the comparison of the given type with the given value.
@@ -129,6 +135,8 @@ public interface Index {
      * @return the produced result set.
      */
     Set<QueryableEntry> getRecords(Comparison comparison, Comparable value);
+
+    long estimateCardinality(Comparison comparison, Comparable value);
 
     /**
      * Clears out all entries from this index.

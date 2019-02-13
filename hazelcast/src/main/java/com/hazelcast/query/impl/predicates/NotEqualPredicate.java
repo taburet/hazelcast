@@ -50,6 +50,11 @@ public final class NotEqualPredicate extends EqualPredicate {
     }
 
     @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        return -1;
+    }
+
+    @Override
     public Set<QueryableEntry> filter(QueryContext queryContext) {
         return null;
     }

@@ -127,10 +127,20 @@ public class GlobalQueryContextWithStats extends QueryContext {
         }
 
         @Override
+        public long estimateCardinality(Comparable value) {
+            return delegate.estimateCardinality(value);
+        }
+
+        @Override
         public Set<QueryableEntry> getRecords(Comparable[] values) {
             Set<QueryableEntry> result = delegate.getRecords(values);
             hasQueries = true;
             return result;
+        }
+
+        @Override
+        public long estimateCardinality(Comparable[] values) {
+            return delegate.estimateCardinality(values);
         }
 
         @Override
@@ -141,10 +151,20 @@ public class GlobalQueryContextWithStats extends QueryContext {
         }
 
         @Override
+        public long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
+            return delegate.estimateCardinality(from, fromInclusive, to, toInclusive);
+        }
+
+        @Override
         public Set<QueryableEntry> getRecords(Comparison comparison, Comparable value) {
             Set<QueryableEntry> result = delegate.getRecords(comparison, value);
             hasQueries = true;
             return result;
+        }
+
+        @Override
+        public long estimateCardinality(Comparison comparison, Comparable value) {
+            return delegate.estimateCardinality(comparison, value);
         }
 
         @Override

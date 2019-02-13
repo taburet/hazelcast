@@ -16,6 +16,7 @@
 
 package com.hazelcast.query.impl.predicates;
 
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.IndexAwarePredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.impl.CompositeValue;
@@ -40,7 +41,7 @@ import static com.hazelcast.query.impl.CompositeValue.POSITIVE_INFINITY;
  * and {@link BoundedRangePredicate} but for composite indexes and values.
  */
 @SuppressFBWarnings("SE_BAD_FIELD")
-public class CompositeRangePredicate implements Predicate, IndexAwarePredicate {
+public class CompositeRangePredicate implements Predicate, IndexAwarePredicate, EstimatingPredicate {
 
     final String indexName;
     final String[] components;
@@ -100,6 +101,16 @@ public class CompositeRangePredicate implements Predicate, IndexAwarePredicate {
         this.toInclusive = toInclusive;
 
         this.prefixLength = prefixLength;
+    }
+
+    @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        Index index = queryContext.matchIndex(indexName, QueryContext.IndexMatchHint.EXACT_NAME);
+        if (index == null) {
+            return -1;
+        }
+
+        return index.estimateCardinality(from, fromInclusive, to, toInclusive);
     }
 
     @SuppressWarnings("unchecked")

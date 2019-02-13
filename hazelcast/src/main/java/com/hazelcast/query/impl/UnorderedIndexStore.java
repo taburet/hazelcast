@@ -134,6 +134,21 @@ public class UnorderedIndexStore extends BaseIndexStore {
     }
 
     @Override
+    public long estimateCardinality(Comparable value) {
+        takeReadLock();
+        try {
+            if (value == NULL) {
+                return recordsWithNullValue.size();
+            } else {
+                Map<Data, QueryableEntry> records = recordMap.get(canonicalize(value));
+                return records == null ? 0 : records.size();
+            }
+        } finally {
+            releaseReadLock();
+        }
+    }
+
+    @Override
     public Set<QueryableEntry> getRecords(Set<Comparable> values) {
         takeReadLock();
         try {
@@ -151,6 +166,30 @@ public class UnorderedIndexStore extends BaseIndexStore {
                 }
             }
             return results;
+        } finally {
+            releaseReadLock();
+        }
+    }
+
+    @Override
+    public long estimateCardinality(Set<Comparable> values) {
+        long estimate = 0;
+
+        takeReadLock();
+        try {
+            for (Comparable value : values) {
+                Map<Data, QueryableEntry> records;
+                if (value == NULL) {
+                    records = recordsWithNullValue;
+                } else {
+                    // value is already canonicalized by the associated index
+                    records = recordMap.get(value);
+                }
+                if (records != null) {
+                    estimate += records.size();
+                }
+            }
+            return estimate;
         } finally {
             releaseReadLock();
         }
@@ -197,6 +236,11 @@ public class UnorderedIndexStore extends BaseIndexStore {
         }
     }
 
+    @Override
+    public long estimateCardinality(Comparison comparison, Comparable value) {
+        return -1;
+    }
+
     @SuppressWarnings({"checkstyle:npathcomplexity"})
     @Override
     public Set<QueryableEntry> getRecords(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
@@ -230,6 +274,11 @@ public class UnorderedIndexStore extends BaseIndexStore {
         } finally {
             releaseReadLock();
         }
+    }
+
+    @Override
+    public long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
+        return -1;
     }
 
     /**

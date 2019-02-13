@@ -107,6 +107,11 @@ public class OrderedIndexStore extends BaseIndexStore {
     }
 
     @Override
+    public long estimateCardinality(Comparable value) {
+        return -1;
+    }
+
+    @Override
     public Set<QueryableEntry> getRecords(Set<Comparable> values) {
         takeReadLock();
         try {
@@ -126,6 +131,11 @@ public class OrderedIndexStore extends BaseIndexStore {
         } finally {
             releaseReadLock();
         }
+    }
+
+    @Override
+    public long estimateCardinality(Set<Comparable> values) {
+        return -1;
     }
 
     @Override
@@ -167,6 +177,11 @@ public class OrderedIndexStore extends BaseIndexStore {
     }
 
     @Override
+    public long estimateCardinality(Comparison comparison, Comparable value) {
+        return -1;
+    }
+
+    @Override
     public Set<QueryableEntry> getRecords(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
         takeReadLock();
         try {
@@ -189,6 +204,11 @@ public class OrderedIndexStore extends BaseIndexStore {
         } finally {
             releaseReadLock();
         }
+    }
+
+    @Override
+    public long estimateCardinality(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
+        return -1;
     }
 
     /**

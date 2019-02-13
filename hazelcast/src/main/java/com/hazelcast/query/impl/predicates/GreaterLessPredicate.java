@@ -19,6 +19,7 @@ package com.hazelcast.query.impl.predicates;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.BinaryInterface;
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.impl.Comparables;
 import com.hazelcast.query.impl.Comparison;
@@ -33,7 +34,8 @@ import java.util.Set;
  * Greater Less Predicate
  */
 @BinaryInterface
-public final class GreaterLessPredicate extends AbstractIndexAwarePredicate implements NegatablePredicate, RangePredicate {
+public final class GreaterLessPredicate extends AbstractIndexAwarePredicate
+        implements NegatablePredicate, RangePredicate, EstimatingPredicate {
 
     private static final long serialVersionUID = 1L;
 
@@ -54,6 +56,22 @@ public final class GreaterLessPredicate extends AbstractIndexAwarePredicate impl
         this.value = value;
         this.equal = equal;
         this.less = less;
+    }
+
+    @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        Index index = matchIndex(queryContext, QueryContext.IndexMatchHint.PREFER_ORDERED);
+        if (index == null) {
+            return -1;
+        }
+
+        final Comparison comparison;
+        if (less) {
+            comparison = equal ? Comparison.LESS_OR_EQUAL : Comparison.LESS;
+        } else {
+            comparison = equal ? Comparison.GREATER_OR_EQUAL : Comparison.GREATER;
+        }
+        return index.estimateCardinality(comparison, value);
     }
 
     @Override

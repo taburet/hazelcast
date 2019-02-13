@@ -16,6 +16,7 @@
 
 package com.hazelcast.query.impl.predicates;
 
+import com.hazelcast.query.EstimatingPredicate;
 import com.hazelcast.query.impl.Comparables;
 import com.hazelcast.query.impl.Index;
 import com.hazelcast.query.impl.QueryContext;
@@ -33,7 +34,7 @@ import static com.hazelcast.query.impl.predicates.PredicateUtils.isNull;
  * Instances of this class are never transferred between members, the
  * serialization is disabled.
  */
-public class BoundedRangePredicate extends AbstractIndexAwarePredicate implements RangePredicate {
+public class BoundedRangePredicate extends AbstractIndexAwarePredicate implements RangePredicate, EstimatingPredicate {
 
     private final Comparable from;
     private final boolean fromInclusive;
@@ -62,6 +63,16 @@ public class BoundedRangePredicate extends AbstractIndexAwarePredicate implement
         this.fromInclusive = fromInclusive;
         this.to = to;
         this.toInclusive = toInclusive;
+    }
+
+    @Override
+    public long estimateCardinality(QueryContext queryContext) {
+        Index index = matchIndex(queryContext, QueryContext.IndexMatchHint.PREFER_ORDERED);
+        if (index == null) {
+            return -1;
+        }
+
+        return index.estimateCardinality(from, fromInclusive, to, toInclusive);
     }
 
     @Override
