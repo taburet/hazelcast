@@ -26,6 +26,7 @@ import com.hazelcast.logging.Logger;
 import com.hazelcast.test.HazelcastSerialClassRunner;
 import com.hazelcast.test.SplitBrainTestSupport;
 import com.hazelcast.test.annotation.NightlyTest;
+import com.hazelcast.test.annotation.Repeat;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -46,6 +47,7 @@ import static org.junit.Assert.assertEquals;
  */
 @RunWith(HazelcastSerialClassRunner.class)
 @Category(NightlyTest.class)
+@Repeat(10)
 public class MapSplitBrainStressTest extends SplitBrainTestSupport {
 
     static final int ITERATION_COUNT = 50;
@@ -71,6 +73,14 @@ public class MapSplitBrainStressTest extends SplitBrainTestSupport {
         config.getMapConfig(MAP_NAME_PREFIX + "*")
                 .setMergePolicy(MERGE_POLICY.getName());
         return config;
+    }
+
+    @Override
+    protected void onTearDown() {
+        iteration = 1;
+        listenerRegistry.clear();
+        mapNames.clear();
+        factory.shutdownAll();
     }
 
     @Override
