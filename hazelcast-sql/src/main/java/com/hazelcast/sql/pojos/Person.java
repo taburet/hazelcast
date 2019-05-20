@@ -22,14 +22,20 @@ public class Person implements Serializable {
 
     public final int __key;
 
+    public final String name;
+
     public final int age;
 
-    public final int height;
+    public final double height;
 
-    public Person(int key, int age, int height) {
+    public final boolean active;
+
+    public Person(int key) {
         this.__key = key;
-        this.age = age;
-        this.height = height;
+        this.name = "Person " + key;
+        this.age = key;
+        this.height = 100.5 + key;
+        this.active = key % 2 == 0;
     }
 
 }

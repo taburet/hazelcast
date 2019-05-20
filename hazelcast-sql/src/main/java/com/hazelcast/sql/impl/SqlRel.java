@@ -17,11 +17,52 @@
 package com.hazelcast.sql.impl;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public interface SqlRel extends RelNode {
 
     Convention CONVENTION = new Convention.Impl("HAZELCAST", SqlRel.class);
+
+    static <T extends SqlRel> T findInputOf(RelNode node, Class<T> clazz) {
+        return findInputOf(node, clazz, new HashSet<>());
+    }
+
+    static <T extends SqlRel> T findInputOf(RelNode node, Class<T> clazz, Set<RelNode> visited) {
+        if (visited.contains(node)) {
+            return null;
+        }
+
+        for (RelNode child : node.getInputs()) {
+            if (clazz.isInstance(child)) {
+                return clazz.cast(child);
+            }
+
+            T found = findInputOf(child, clazz, visited);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        if (node instanceof RelSubset) {
+            RelSubset subset = (RelSubset) node;
+            for (RelNode child : subset.getRels()) {
+                if (clazz.isInstance(child)) {
+                    return clazz.cast(child);
+                }
+
+                T found = findInputOf(child, clazz, visited);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+
+        return null;
+    }
 
     void implement(SqlImplementation implementation);
 

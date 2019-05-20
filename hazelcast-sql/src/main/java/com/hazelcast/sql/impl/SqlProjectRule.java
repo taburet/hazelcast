@@ -22,44 +22,48 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexNode;
 
-public class SqlProjectRule extends ConverterRule {
+public class SqlProjectRule extends ConverterRule /*RelOptRule*/ {
 
     public static final RelOptRule INSTANCE = new SqlProjectRule();
 
     public SqlProjectRule() {
         super(LogicalProject.class, Convention.NONE, SqlRel.CONVENTION, SqlProjectRule.class.getSimpleName());
+        //super(operand(LogicalProject.class, operand(SqlRel.class, any())), SqlProjectRule.class.getSimpleName());
     }
 
     @Override
     public boolean matches(RelOptRuleCall call) {
-        assert call.rels.length == 1;
-        LogicalProject project = call.rel(0);
+        Project project = call.rel(0);
 
-        assert project.getInputs().size() == 1;
-        if (project.getInput().getConvention() != SqlRel.CONVENTION) {
-            return false;
-        }
+        // TODO: this is wrong and doesn't work, we should not travers the tree manually, use proper matching!
+//        if (SqlRel.findInputOf(project, SqlProject.class) != null || SqlRel.findInputOf(project, SqlAggregate.class) != null) {
+//            return false;
+//        }
 
-        // TODO: proper fields detection
-        for (RexNode node : project.getProjects()) {
-            if (!(node instanceof RexInputRef)) {
-                return false;
-            }
-        }
-
-        return true;
+        return Projects.isSupported(project);
     }
 
     @Override
     public RelNode convert(RelNode rel) {
-        final LogicalProject project = (LogicalProject) rel;
-        final RelTraitSet traitSet = project.getTraitSet().replace(SqlRel.CONVENTION);
-        // TODO: convert(project.getInput(), SqlRel.CONVENTION), do we need it?
-        return new SqlProject(project.getCluster(), traitSet, project.getInput(), project.getProjects(), project.getRowType());
+        Project project = (LogicalProject) rel;
+
+        RelTraitSet traitSet = project.getTraitSet().replace(SqlRel.CONVENTION);
+        return new SqlProject(project.getCluster(), traitSet, convert(project.getInput(), SqlRel.CONVENTION),
+                project.getProjects(), project.getRowType());
     }
+
+    //    @Override
+//    public void onMatch(RelOptRuleCall call) {
+//        LogicalProject project = call.rel(0);
+//
+//        RelTraitSet traitSet = project.getTraitSet().replace(SqlRel.CONVENTION);
+//        SqlProject newProject = new SqlProject(project.getCluster(), traitSet, convert(project.getInput(), SqlRel.CONVENTION),
+//                project.getProjects(), project.getRowType());
+//
+//        call.transformTo(newProject);
+//    }
 
 }

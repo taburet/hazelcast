@@ -37,12 +37,11 @@ public class SqlTableScan extends TableScan implements SqlRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        double rows = table.getRowCount();
-        @SuppressWarnings("UnnecessaryLocalVariable")
-        double cpu = rows;
-        double io = rows * getRowType().getFieldCount();
-
-        return planner.getCostFactory().makeCost(rows, cpu, io);
+        return super.computeSelfCost(planner, mq);
+//        double rows = table.getRowCount();
+//        double io = rows * getRowType().getFieldCount();
+//
+//        return planner.getCostFactory().makeCost(rows, 0.0, io);
     }
 
 }

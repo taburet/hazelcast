@@ -25,13 +25,13 @@ import org.apache.calcite.linq4j.Enumerable;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class Test {
+public class Demo {
 
     public static void main(String[] args) {
         HazelcastInstance instance = Hazelcast.newHazelcastInstance();
         IMap<Object, Object> map = instance.getMap("persons");
         for (int i = 0; i < 10; ++i) {
-            map.put(i, new Person(i, i, 100 + i));
+            map.put(i, new Person(i));
         }
 
         HazelcastSql hazelcastSql = HazelcastSql.createFor(instance);
@@ -41,7 +41,7 @@ public class Test {
         while (true) {
             String query = scanner.nextLine();
             if (query.isEmpty()) {
-                query = "select height, age from persons where age >= 5";
+                query = "select age, height from persons where age >= 5 order by age";
                 System.out.println(query);
             }
 

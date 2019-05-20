@@ -16,6 +16,9 @@
 
 package com.hazelcast.sql.impl;
 
+import com.hazelcast.aggregation.Aggregator;
+import com.hazelcast.projection.Projection;
+import com.hazelcast.query.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -26,9 +29,12 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.runtime.Hook;
 
 import java.lang.reflect.Method;
@@ -36,7 +42,9 @@ import java.util.List;
 
 public class SqlToEnumerableConverter extends ConverterImpl implements EnumerableRel {
 
-    private static final Method QUERY_METHOD = Types.lookupMethod(SqlTranslatableTable.QueryableImpl.class, "query", List.class);
+    private static final Method QUERY_METHOD =
+            Types.lookupMethod(SqlTranslatableTable.QueryableImpl.class, "query", Aggregator.class, Projection.class,
+                    Predicate.class);
 
     public SqlToEnumerableConverter(RelOptCluster cluster, RelTraitSet traitSet, RelNode input) {
         super(cluster, ConventionTraitDef.INSTANCE, traitSet, input);
@@ -48,16 +56,23 @@ public class SqlToEnumerableConverter extends ConverterImpl implements Enumerabl
     }
 
     @Override
+    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+        return planner.getCostFactory().makeZeroCost();
+    }
+
+    @Override
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
         SqlImplementation implementation = new SqlImplementation();
         ((SqlRel) getInput()).implement(implementation);
-        System.out.println("Implemented: " + implementation);
+        System.out.println(implementation);
 
         final PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), rowType, pref.prefer(JavaRowFormat.ARRAY));
 
         BlockBuilder blockBuilder = new BlockBuilder().append(
                 Expressions.call(implementation.table.getExpression(SqlTranslatableTable.QueryableImpl.class), QUERY_METHOD,
-                        Expressions.constant(implementation.project)));
+                        Aggregates.representAsExpression(implementation.aggregate),
+                        Projects.representAsExpression(implementation.project),
+                        Filters.representAsExpression(implementation.filter)));
 
         Hook.QUERY_PLAN.run(implementation);
 

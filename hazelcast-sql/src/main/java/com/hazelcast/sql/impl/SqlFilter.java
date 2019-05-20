@@ -21,23 +21,19 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
-import java.util.List;
+public class SqlFilter extends Filter implements SqlRel {
 
-public class SqlProject extends Project implements SqlRel {
-
-    public SqlProject(RelOptCluster cluster, RelTraitSet traits, RelNode input, List<? extends RexNode> projects,
-                      RelDataType rowType) {
-        super(cluster, traits, input, projects, rowType);
+    public SqlFilter(RelOptCluster cluster, RelTraitSet traits, RelNode input, RexNode condition) {
+        super(cluster, traits, input, condition);
     }
 
     @Override
-    public Project copy(RelTraitSet traitSet, RelNode input, List<RexNode> projects, RelDataType rowType) {
-        return new SqlProject(getCluster(), traitSet, input, projects, rowType);
+    public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+        return new SqlFilter(getCluster(), traitSet, input, condition);
     }
 
     @Override
@@ -57,22 +53,21 @@ public class SqlProject extends Project implements SqlRel {
 
         //return super.computeSelfCost(planner, mq).multiplyBy(0.1);
 
-//        TableScan tableScan = SqlRel.findInputOf(this, SqlTableScan.class);
 //        SqlRel input = SqlRel.findInputOf(this, SqlRel.class);
-//        assert tableScan != null;
 //        assert input != null;
 //
 //        RelOptCost cost = input.computeSelfCost(planner, mq);
-//        System.out.println("Project: " + input);
+//        System.out.println("Filter: " + input);
 //
-//        double io = -(tableScan.getRowType().getFieldCount() - getRowType().getFieldCount()) * cost.getRows();
-//        return planner.getCostFactory().makeCost(0.0, 0.0, io);
+//        double rows = -cost.getRows() * 0.75;
+//        double io = -cost.getIo() * 0.75;
+//        return planner.getCostFactory().makeCost(rows, 0.0, io);
     }
 
     @Override
     public void implement(SqlImplementation implementation) {
         ((SqlRel) getInput()).implement(implementation);
-        implementation.project = this;
+        implementation.filter = this;
     }
 
 }

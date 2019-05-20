@@ -37,8 +37,15 @@ public class SqlPrepare extends CalcitePrepareImpl {
     protected RelOptPlanner createPlanner(Context prepareContext, org.apache.calcite.plan.Context externalContext,
                                           RelOptCostFactory costFactory) {
         RelOptPlanner planner = super.createPlanner(prepareContext, externalContext, costFactory);
-        planner.addRule(SqlToEnumerableConverterRule.INSTANCE);
+
+        // TODO: we don't support count(distinct x)
+        //planner.addRule(AggregateExpandDistinctAggregatesRule.JOIN);
+
         planner.addRule(SqlProjectRule.INSTANCE);
+        planner.addRule(SqlFilterRule.INSTANCE);
+        planner.addRule(SqlAggregateRule.INSTANCE);
+        planner.addRule(SqlToEnumerableConverterRule.INSTANCE);
+
         return planner;
     }
 

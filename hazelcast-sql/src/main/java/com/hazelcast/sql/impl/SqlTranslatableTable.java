@@ -16,12 +16,15 @@
 
 package com.hazelcast.sql.impl;
 
+import com.hazelcast.aggregation.Aggregator;
 import com.hazelcast.core.IMap;
-import com.hazelcast.projection.Projections;
+import com.hazelcast.projection.Projection;
+import com.hazelcast.query.Predicate;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.plan.RelOptCluster;
@@ -124,14 +127,27 @@ public class SqlTranslatableTable extends AbstractQueryableTable implements Tran
             throw new IllegalStateException();
         }
 
-        @SuppressWarnings("unused")
-        public Enumerable query(List<String> project) {
+        @SuppressWarnings({"unused", "unchecked"})
+        public Enumerable query(Aggregator aggregator, Projection projection, Predicate predicate) {
             SqlTranslatableTable table = (SqlTranslatableTable) this.table;
 
-            if (project != null && !project.isEmpty()) {
-                String[] attributePaths = project.toArray(new String[0]);
-                Collection<Object[]> result = table.map.project(Projections.multiAttribute(attributePaths));
-                return new SqlEnumerableProjectCollection(result);
+            assert aggregator == null || projection == null;
+
+            System.out.println(
+                    "Query: " + tableName + ", aggregator=" + aggregator + ", projection=" + projection + ", predicate="
+                            + predicate);
+
+            if (aggregator != null) {
+                Object result = predicate == null ? table.map.aggregate(aggregator) : table.map.aggregate(aggregator, predicate);
+                return result instanceof Collection ? new SqlEnumerableCollection(
+                        (Collection) result) : Linq4j.singletonEnumerable(result);
+            } else if (projection != null) {
+                Collection result = predicate == null ? table.map.project(projection) : table.map.project(projection, predicate);
+                return new SqlEnumerableCollection(result);
+            }
+
+            if (predicate != null) {
+                return new SqlEnumerableEntrySet(table.fields, table.map.entrySet(predicate));
             }
 
             return new SqlEnumerableEntrySet(table.fields, table.map.entrySet());

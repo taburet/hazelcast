@@ -22,11 +22,11 @@ import org.apache.calcite.linq4j.Enumerator;
 import java.util.Collection;
 import java.util.Iterator;
 
-public class SqlEnumerableProjectCollection extends AbstractEnumerable<Object> {
+public class SqlEnumerableCollection extends AbstractEnumerable<Object> {
 
-    private final Collection<Object[]> collection;
+    private final Collection<Object> collection;
 
-    public SqlEnumerableProjectCollection(Collection<Object[]> collection) {
+    public SqlEnumerableCollection(Collection<Object> collection) {
         this.collection = collection;
     }
 
@@ -37,13 +37,13 @@ public class SqlEnumerableProjectCollection extends AbstractEnumerable<Object> {
 
     private class EnumeratorImpl implements Enumerator<Object> {
 
-        private Iterator<Object[]> iterator = collection.iterator();
+        private Iterator<Object> iterator = collection.iterator();
 
-        private Object[] current;
+        private Object current;
 
         @Override
         public Object current() {
-            return current.length == 1 ? current[0] : current;
+            return current;
         }
 
         @Override

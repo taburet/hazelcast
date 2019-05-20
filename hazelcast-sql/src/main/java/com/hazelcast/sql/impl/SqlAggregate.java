@@ -21,23 +21,24 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 
-public class SqlProject extends Project implements SqlRel {
+public class SqlAggregate extends Aggregate implements SqlRel {
 
-    public SqlProject(RelOptCluster cluster, RelTraitSet traits, RelNode input, List<? extends RexNode> projects,
-                      RelDataType rowType) {
-        super(cluster, traits, input, projects, rowType);
+    protected SqlAggregate(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator, ImmutableBitSet groupSet,
+                           List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+        super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
     }
 
     @Override
-    public Project copy(RelTraitSet traitSet, RelNode input, List<RexNode> projects, RelDataType rowType) {
-        return new SqlProject(getCluster(), traitSet, input, projects, rowType);
+    public Aggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator, ImmutableBitSet groupSet,
+                          List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+        return new SqlAggregate(getCluster(), traitSet, input, indicator, groupSet, groupSets, aggCalls);
     }
 
     @Override
@@ -72,7 +73,8 @@ public class SqlProject extends Project implements SqlRel {
     @Override
     public void implement(SqlImplementation implementation) {
         ((SqlRel) getInput()).implement(implementation);
-        implementation.project = this;
+        // TODO: proper fields detection
+        implementation.aggregate = this;
     }
 
 }

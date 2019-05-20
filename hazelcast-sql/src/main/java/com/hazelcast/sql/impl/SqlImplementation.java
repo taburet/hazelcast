@@ -17,18 +17,26 @@
 package com.hazelcast.sql.impl;
 
 import org.apache.calcite.plan.RelOptTable;
-
-import java.util.List;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
 
 public class SqlImplementation {
 
     public RelOptTable table;
 
-    public List<String> project;
+    public Project project;
+
+    public Filter filter;
+
+    public Aggregate aggregate;
 
     @Override
     public String toString() {
-        return "SqlImplementation(" + "table=" + table.getQualifiedName() + ", project=" + project + ')';
+        return "SqlImplementation(" + "table=" + table.getQualifiedName() + ", project=" + (
+                project == null ? "<none>" : project.getRowType().getFieldNames()) + ", filter=" + (
+                filter == null ? "<none>" : filter.getCondition()) + ", aggregate=" + (aggregate == null ? "<none>" : aggregate)
+                + ')';
     }
 
 }
