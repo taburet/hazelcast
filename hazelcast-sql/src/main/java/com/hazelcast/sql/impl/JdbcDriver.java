@@ -43,6 +43,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+// TODO: check fetch size, looks like it's to low by default
+// TODO: think about remote vs local execution
 public class JdbcDriver extends Driver {
 
     static {

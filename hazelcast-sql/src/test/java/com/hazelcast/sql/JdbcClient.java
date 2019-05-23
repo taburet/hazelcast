@@ -26,9 +26,30 @@ public class JdbcClient {
 
     public static void main(String[] args) throws SQLException {
         Connection connection = DriverManager.getConnection("jdbc:hazelcast://localhost:10000", "user", "pass");
-        Statement statement = connection.createStatement();
-        ResultSet resultSet = statement.executeQuery("select age, height from persons where age >= 5 order by age");
 
+        {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("select age, height from persons where age >= 5");
+            printResultSet(resultSet);
+
+            resultSet.close();
+            statement.close();
+        }
+
+//        {
+//            PreparedStatement preparedStatement = connection.prepareStatement("select age, height from persons where age >= ?");
+//            preparedStatement.setInt(1, 5);
+//            ResultSet resultSet = preparedStatement.executeQuery();
+//            printResultSet(resultSet);
+//
+//            resultSet.close();
+//            preparedStatement.close();
+//        }
+
+        connection.close();
+    }
+
+    private static void printResultSet(ResultSet resultSet) throws SQLException {
         int columnCount = resultSet.getMetaData().getColumnCount();
         while (resultSet.next()) {
             for (int i = 1; i <= columnCount; ++i) {
@@ -39,10 +60,6 @@ public class JdbcClient {
             }
             System.out.println();
         }
-
-        resultSet.close();
-        statement.close();
-        connection.close();
     }
 
 }
