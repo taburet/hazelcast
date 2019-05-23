@@ -27,8 +27,11 @@
 
     <artifactId>hazelcast-sql</artifactId>
 
-    <dependencies>
+    <properties>
+        <relocation.root>com.hazelcast.sql.relocation</relocation.root>
+    </properties>
 
+    <dependencies>
         <dependency>
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast</artifactId>
@@ -52,7 +55,6 @@
             <version>1.7.0</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -61,6 +63,103 @@
                 <directory>src/main/resources</directory>
             </resource>
         </resources>
+
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven.jar.plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                        <compress>true</compress>
+                        <manifest>
+                            <addClasspath>false</addClasspath>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven.shade.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactId>hazelcast-sql</shadedArtifactId>
+                            <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <minimizeJar>false</minimizeJar>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
+                            <shadeTestJar>true</shadeTestJar>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>com.hazelcast:hazelcast</exclude>
+                                    <exclude>com.hazelcast:hazelcast-client</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.fasterxml.</pattern>
+                                    <shadedPattern>${relocation.root}.com.fasterxml.</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.esri.</pattern>
+                                    <shadedPattern>${relocation.root}.com.esri.</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.</pattern>
+                                    <shadedPattern>${relocation.root}.com.google.*</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.jayway.*</pattern>
+                                    <shadedPattern>${relocation.root}.com.jayway.*</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.yahoo.*</pattern>
+                                    <shadedPattern>${relocation.root}.com.yahoo.*</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.*</pattern>
+                                    <shadedPattern>${relocation.root}.org.*</shadedPattern>
+                                </relocation>
+                            </relocations>
+
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.hazelcast</groupId>
+                        <artifactId>hazelcast-build-utils</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
     </build>
 
 
