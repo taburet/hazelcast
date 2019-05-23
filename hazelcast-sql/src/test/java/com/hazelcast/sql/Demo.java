@@ -50,6 +50,7 @@ public class Demo {
                 System.out.println(hazelcastSql.explain(query));
 
                 Enumerable<Object> result = hazelcastSql.query(query);
+
                 for (Object object : result) {
                     System.out.println(object instanceof Object[] ? Arrays.deepToString((Object[]) object) : object);
                 }

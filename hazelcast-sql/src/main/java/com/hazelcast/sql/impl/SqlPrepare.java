@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 
+// TODO: do we really need this class, probably everything may configured using properties (?)
 public class SqlPrepare extends CalcitePrepareImpl {
 
     @Override
