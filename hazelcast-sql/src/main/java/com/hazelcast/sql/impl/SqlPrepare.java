@@ -17,13 +17,15 @@
 package com.hazelcast.sql.impl;
 
 import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.plan.RelOptCostFactory;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.parser.SqlParser;
 
-// TODO: do we really need this class, probably everything may configured using properties (?)
 public class SqlPrepare extends CalcitePrepareImpl {
+
+    static {
+        Hook.ENABLE_BINDABLE.add(Hook.propertyJ(true));
+    }
 
     @Override
     protected SqlParser.ConfigBuilder createParserConfig() {
@@ -32,22 +34,6 @@ public class SqlPrepare extends CalcitePrepareImpl {
         parserConfig.setQuotedCasing(Casing.UNCHANGED);
         parserConfig.setCaseSensitive(true);
         return parserConfig;
-    }
-
-    @Override
-    protected RelOptPlanner createPlanner(Context prepareContext, org.apache.calcite.plan.Context externalContext,
-                                          RelOptCostFactory costFactory) {
-        RelOptPlanner planner = super.createPlanner(prepareContext, externalContext, costFactory);
-
-        // TODO: we don't support count(distinct x)
-        //planner.addRule(AggregateExpandDistinctAggregatesRule.JOIN);
-
-        planner.addRule(SqlProjectRule.INSTANCE);
-        planner.addRule(SqlFilterRule.INSTANCE);
-        planner.addRule(SqlAggregateRule.INSTANCE);
-        planner.addRule(SqlToEnumerableConverterRule.INSTANCE);
-
-        return planner;
     }
 
 }

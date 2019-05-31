@@ -16,54 +16,27 @@
 
 package com.hazelcast.sql.impl;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.logical.LogicalProject;
 
-public class SqlProjectRule extends ConverterRule /*RelOptRule*/ {
+public class SqlProjectRule extends RelOptRule {
 
     public static final RelOptRule INSTANCE = new SqlProjectRule();
 
-    public SqlProjectRule() {
-        super(LogicalProject.class, Convention.NONE, SqlRel.CONVENTION, SqlProjectRule.class.getSimpleName());
-        //super(operand(LogicalProject.class, operand(SqlRel.class, any())), SqlProjectRule.class.getSimpleName());
+    private SqlProjectRule() {
+        super(operand(Project.class, operand(SqlQuery.class, none())));
     }
 
     @Override
-    public boolean matches(RelOptRuleCall call) {
+    public void onMatch(RelOptRuleCall call) {
         Project project = call.rel(0);
+        SqlQuery query = call.rel(1);
 
-        // TODO: this is wrong and doesn't work, we should not travers the tree manually, use proper matching!
-//        if (SqlRel.findInputOf(project, SqlProject.class) != null || SqlRel.findInputOf(project, SqlAggregate.class) != null) {
-//            return false;
-//        }
-
-        return Projects.isSupported(project);
+        SqlQuery combinedQuery = query.tryToCombineWith(project);
+        if (combinedQuery != null) {
+            call.transformTo(combinedQuery);
+        }
     }
-
-    @Override
-    public RelNode convert(RelNode rel) {
-        Project project = (LogicalProject) rel;
-
-        RelTraitSet traitSet = project.getTraitSet().replace(SqlRel.CONVENTION);
-        return new SqlProject(project.getCluster(), traitSet, convert(project.getInput(), SqlRel.CONVENTION),
-                project.getProjects(), project.getRowType());
-    }
-
-    //    @Override
-//    public void onMatch(RelOptRuleCall call) {
-//        LogicalProject project = call.rel(0);
-//
-//        RelTraitSet traitSet = project.getTraitSet().replace(SqlRel.CONVENTION);
-//        SqlProject newProject = new SqlProject(project.getCluster(), traitSet, convert(project.getInput(), SqlRel.CONVENTION),
-//                project.getProjects(), project.getRowType());
-//
-//        call.transformTo(newProject);
-//    }
 
 }

@@ -19,19 +19,15 @@ package com.hazelcast.sql.impl;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 
-import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
-public class SqlEnumerableEntrySet extends AbstractEnumerable<Object[]> {
+public class SqlArrayEnumerableCollection extends AbstractEnumerable<Object[]> {
 
-    private final Field[] fields;
-    private final Set<Map.Entry<Object, Object>> entrySet;
+    private final Collection collection;
 
-    public SqlEnumerableEntrySet(Field[] fields, Set<Map.Entry<Object, Object>> entrySet) {
-        this.fields = fields;
-        this.entrySet = entrySet;
+    public SqlArrayEnumerableCollection(Collection collection) {
+        this.collection = collection;
     }
 
     @Override
@@ -41,7 +37,7 @@ public class SqlEnumerableEntrySet extends AbstractEnumerable<Object[]> {
 
     private class EnumeratorImpl implements Enumerator<Object[]> {
 
-        private Iterator<Map.Entry<Object, Object>> iterator = entrySet.iterator();
+        private Iterator iterator = collection.iterator();
 
         private Object[] current;
 
@@ -56,23 +52,15 @@ public class SqlEnumerableEntrySet extends AbstractEnumerable<Object[]> {
                 return false;
             }
 
-            Object value = iterator.next().getValue();
-
-            current = new Object[fields.length];
-            for (int i = 0; i < fields.length; ++i) {
-                try {
-                    current[i] = fields[i].get(value);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            Object next = iterator.next();
+            current = new Object[]{next};
 
             return true;
         }
 
         @Override
         public void reset() {
-            iterator = entrySet.iterator();
+            iterator = collection.iterator();
         }
 
         @Override

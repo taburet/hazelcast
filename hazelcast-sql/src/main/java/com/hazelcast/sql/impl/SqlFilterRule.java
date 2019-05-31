@@ -16,54 +16,27 @@
 
 package com.hazelcast.sql.impl;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.logical.LogicalFilter;
 
-public class SqlFilterRule extends ConverterRule /* RelOptRule */ {
+public class SqlFilterRule extends RelOptRule {
 
     public static final RelOptRule INSTANCE = new SqlFilterRule();
 
-    public SqlFilterRule() {
-        super(LogicalFilter.class, Convention.NONE, SqlRel.CONVENTION, SqlFilterRule.class.getSimpleName());
-//        super(operand(LogicalFilter.class, operand(SqlRel.class, any())), SqlFilterRule.class.getSimpleName());
+    private SqlFilterRule() {
+        super(operand(Filter.class, operand(SqlQuery.class, none())));
     }
 
     @Override
-    public boolean matches(RelOptRuleCall call) {
+    public void onMatch(RelOptRuleCall call) {
         Filter filter = call.rel(0);
+        SqlQuery query = call.rel(1);
 
-        // TODO: this is wrong and doesn't work, we should not travers the tree manually, use proper matching!
-//        if (SqlRel.findInputOf(filter, SqlFilter.class) != null) {
-//            return false;
-//        }
-
-        return Filters.isSupported(filter);
+        SqlQuery combinedQuery = query.tryToCombineWith(filter);
+        if (combinedQuery != null) {
+            call.transformTo(combinedQuery);
+        }
     }
-
-    @Override
-    public RelNode convert(RelNode rel) {
-        Filter filter = (LogicalFilter) rel;
-
-        RelTraitSet traitSet = filter.getTraitSet().replace(SqlRel.CONVENTION);
-        return new SqlFilter(filter.getCluster(), traitSet, convert(filter.getInput(), SqlRel.CONVENTION), filter.getCondition());
-    }
-
-//    @Override
-//    public void onMatch(RelOptRuleCall call) {
-//        LogicalFilter filter = call.rel(0);
-//
-//        RelTraitSet traitSet = filter.getTraitSet().replace(SqlRel.CONVENTION);
-//        SqlFilter newFilter = new SqlFilter(filter.getCluster(), traitSet, convert(filter.getInput(), SqlRel.CONVENTION),
-//                filter.getCondition());
-//
-//        call.transformTo(newFilter);
-//
-//    }
 
 }

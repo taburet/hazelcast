@@ -16,43 +16,27 @@
 
 package com.hazelcast.sql.impl;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 
-public class SqlAggregateRule extends ConverterRule {
+public class SqlAggregateRule extends RelOptRule {
 
     public static final RelOptRule INSTANCE = new SqlAggregateRule();
 
-    public SqlAggregateRule() {
-        super(LogicalAggregate.class, Convention.NONE, SqlRel.CONVENTION, SqlAggregateRule.class.getSimpleName());
+    private SqlAggregateRule() {
+        super(operand(Aggregate.class, operand(SqlQuery.class, none())));
     }
 
     @Override
-    public boolean matches(RelOptRuleCall call) {
+    public void onMatch(RelOptRuleCall call) {
         Aggregate aggregate = call.rel(0);
+        SqlQuery query = call.rel(1);
 
-        // TODO: this is wrong and doesn't work, we should not travers the tree manually, use proper matching!
-//        if (SqlRel.findInputOf(aggregate, SqlAggregate.class) != null
-//                || SqlRel.findInputOf(aggregate, SqlProject.class) != null) {
-//            return false;
-//        }
-
-        return Aggregates.isSupported(aggregate);
-    }
-
-    @Override
-    public RelNode convert(RelNode rel) {
-        Aggregate aggregate = (LogicalAggregate) rel;
-
-        RelTraitSet traitSet = aggregate.getTraitSet().replace(SqlRel.CONVENTION);
-        return new SqlAggregate(aggregate.getCluster(), traitSet, convert(aggregate.getInput(), SqlRel.CONVENTION),
-                aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(), aggregate.getAggCallList());
+        SqlQuery combinedQuery = query.tryToCombineWith(aggregate);
+        if (combinedQuery != null) {
+            call.transformTo(combinedQuery);
+        }
     }
 
 }

@@ -28,7 +28,7 @@
     <artifactId>hazelcast-sql</artifactId>
 
     <properties>
-        <relocation.root>com.hazelcast.sql.relocation</relocation.root>
+        <relocation.root>com.hazelcast.sql</relocation.root>
     </properties>
 
     <dependencies>
@@ -61,13 +61,6 @@
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-core</artifactId>
             <version>1.19.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>sqlline</groupId>
-            <artifactId>sqlline</artifactId>
-            <version>1.7.0</version>
-            <scope>test</scope>
         </dependency>
 
         <!--

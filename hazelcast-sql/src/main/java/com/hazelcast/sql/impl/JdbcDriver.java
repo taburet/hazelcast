@@ -84,8 +84,7 @@ public class JdbcDriver extends Driver {
         // TODO proper schema support
         SchemaImpl schema = new SchemaImpl();
         schema.addTable("persons",
-                new SqlTranslatableTable(Person.class, connection.getTypeFactory().createStructType(Person.class),
-                        client.getMap("persons")));
+                new SqlTable(connection.getTypeFactory().createStructType(Person.class), client.getMap("persons")));
         connection.getRootSchema().add("hazelcast", schema);
         connection.setSchema("hazelcast");
         connection.getProperties().put("hazelcast-client", client);

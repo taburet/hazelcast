@@ -16,37 +16,44 @@
 
 package com.hazelcast.sql;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
+import com.hazelcast.projection.Projections;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 public class JdbcClient {
 
     public static void main(String[] args) throws SQLException {
-        Connection connection = DriverManager.getConnection("jdbc:hazelcast://localhost:10000", "user", "pass");
+        ClientConfig config = new ClientConfig();
+        config.getNetworkConfig().addAddress("localhost:10000");
+        HazelcastInstance client = HazelcastClient.newHazelcastClient(config);
 
-        {
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("select age, height from persons where age >= 5");
-            printResultSet(resultSet);
+        IMap map = client.getMap("persons");
 
-            resultSet.close();
-            statement.close();
-        }
+//        HazelcastSql hazelcastSql = HazelcastSql.createFor(client);
 
-//        {
-//            PreparedStatement preparedStatement = connection.prepareStatement("select age, height from persons where age >= ?");
-//            preparedStatement.setInt(1, 5);
-//            ResultSet resultSet = preparedStatement.executeQuery();
-//            printResultSet(resultSet);
+//        Connection connection = DriverManager.getConnection("jdbc:hazelcast://localhost:10000", "user", "pass");
+
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 100000; ++i) {
+            map.project(Projections.multiAttribute("__key", "name", "age", "height", "active"));
+
+//            hazelcastSql.query("select * from persons");
+
+//            Statement statement = connection.createStatement();
+//            ResultSet resultSet = statement.executeQuery("select * from persons");
+////            printResultSet(resultSet);
 //
 //            resultSet.close();
-//            preparedStatement.close();
-//        }
+//            statement.close();
+        }
+        System.out.println(System.currentTimeMillis() - start);
 
-        connection.close();
+//        connection.close();
     }
 
     private static void printResultSet(ResultSet resultSet) throws SQLException {

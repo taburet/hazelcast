@@ -19,7 +19,7 @@ package com.hazelcast.sql;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.sql.impl.SqlContext;
 import com.hazelcast.sql.impl.SqlPrepare;
-import com.hazelcast.sql.impl.SqlTranslatableTable;
+import com.hazelcast.sql.impl.SqlTable;
 import com.hazelcast.sql.pojos.Person;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -41,13 +41,7 @@ public final class HazelcastSql {
     private HazelcastSql(HazelcastInstance instance) {
         // TODO: real schema support, where to get it?
         // TODO: make __key field to be a pseudo field
-
-//        schema.add("persons",
-//                new SqlScannableTable(Person.class, javaTypeFactory.createStructType(Person.class), instance.getMap
-//                ("persons")));
-
-        schema.add("persons", new SqlTranslatableTable(Person.class, javaTypeFactory.createStructType(Person.class),
-                instance.getMap("persons")));
+        schema.add("persons", new SqlTable(javaTypeFactory.createStructType(Person.class), instance.getMap("persons")));
     }
 
     public static HazelcastSql createFor(HazelcastInstance instance) {
@@ -76,7 +70,8 @@ public final class HazelcastSql {
 
     public String explain(String query) {
         Enumerable<Object> result = query("explain plan including all attributes for " + query);
-        return (String) result.first();
+        Object first = result.first();
+        return first instanceof Object[] ? (String) ((Object[]) first)[0] : (String) first;
     }
 
     public String explainLogical(String query) {
