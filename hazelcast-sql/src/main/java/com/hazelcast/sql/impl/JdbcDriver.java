@@ -45,6 +45,7 @@ import java.util.Properties;
 
 // TODO: check fetch size, looks like it's too low by default
 // TODO: think about remote vs local execution
+// TODO: move to public package?
 public class JdbcDriver extends Driver {
 
     static {
