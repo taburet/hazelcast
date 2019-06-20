@@ -146,6 +146,10 @@
                                     <pattern>org.</pattern>
                                     <shadedPattern>${relocation.root}.org.</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>javax.servlet.</pattern>
+                                    <shadedPattern>${relocation.root}.javax.servlet.</shadedPattern>
+                                </relocation>
                             </relocations>
 
                             <transformers>

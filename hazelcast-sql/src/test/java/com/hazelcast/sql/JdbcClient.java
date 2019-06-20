@@ -33,7 +33,7 @@ public class JdbcClient {
 
 //        HazelcastSql hazelcastSql = HazelcastSql.createFor(client);
 
-        Connection connection = DriverManager.getConnection("jdbc:hazelcast://localhost:10000", "user", "pass");
+        Connection connection = DriverManager.getConnection("jdbc:hazelcast-remote://localhost:10000", "user", "pass");
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < 1; ++i) {
@@ -43,7 +43,7 @@ public class JdbcClient {
 
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery("select * from persons");
-//            printResultSet(resultSet);
+            printResultSet(resultSet);
 
             resultSet.close();
             statement.close();

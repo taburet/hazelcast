@@ -14,6 +14,4 @@
 # limitations under the License.
 #
 
-com.hazelcast.sql.impl.jdbc.JdbcDriver
-com.hazelcast.sql.impl.jdbc.RemoteJdbcDriver
-com.hazelcast.sql.impl.jdbc.LocalJdbcDriver
+com.hazelcast.sql.impl.jdbc.SqlMessageTaskFactoryProvider

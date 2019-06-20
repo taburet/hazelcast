@@ -38,6 +38,11 @@
                     <groupId>org.apache.calcite</groupId>
                     <artifactId>calcite-core</artifactId>
                 </exclusion>
+                <exclusion>
+                    <!-- already shaded into hazelcast-sql module -->
+                    <groupId>org.apache.calcite.avatica</groupId>
+                    <artifactId>avatica-server</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
     </dependencies>
