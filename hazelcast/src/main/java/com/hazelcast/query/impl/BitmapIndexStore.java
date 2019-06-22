@@ -58,6 +58,8 @@ public class BitmapIndexStore extends BaseIndexStore {
     private final Long2LongHashMap internalKeys;
     private long internalKeyCounter = 0;
 
+//    private final MinHash minHash = new MinHash(30);
+
     public BitmapIndexStore(String keyAttribute, InternalSerializationService serializationService, Extractors extractors) {
         super(IndexCopyBehavior.NEVER);
         if (keyAttribute.endsWith("?")) {
@@ -92,6 +94,22 @@ public class BitmapIndexStore extends BaseIndexStore {
                 assert replaced == -1;
                 key = internalKey;
             }
+//            if (minHash != null) {
+//                long[] signature = minHash.signature(values);
+//                values = new Iterator() {
+//                    private int index;
+//
+//                    @Override
+//                    public boolean hasNext() {
+//                        return index < signature.length;
+//                    }
+//
+//                    @Override
+//                    public Object next() {
+//                        return signature[index++];
+//                    }
+//                };
+//            }
             bitmaps.insert(values, key, entry);
         } finally {
             releaseWriteLock();
@@ -176,6 +194,14 @@ public class BitmapIndexStore extends BaseIndexStore {
     public Set<QueryableEntry> getRecords(Set<Comparable> values) {
         takeReadLock();
         try {
+//            if (minHash != null) {
+//                long[] signature = minHash.signature(values.iterator());
+//                values = new HashSet<>();
+//                for (long component : signature) {
+//                    values.add(component);
+//                }
+//            }
+
             // values already canonicalized here
             return toSingleResultSet(toMap(bitmaps.getHavingAnyOf(values)));
         } finally {
