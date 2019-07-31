@@ -26,7 +26,6 @@ import com.hazelcast.test.HazelcastTestSupport;
 import com.hazelcast.test.annotation.ParallelTest;
 import com.hazelcast.test.annotation.QuickTest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -71,12 +70,11 @@ public class CompactIndexesTest extends HazelcastTestSupport {
     }
 
     @Test
-    @Ignore("takes really long time to shutdown")
     public void testConsecutiveIds() throws IOException {
         persons.addIndex("habits[any] -> __key", false);
 
         long start = System.currentTimeMillis();
-        for (long i = 0; i < 100000; ++i) {
+        for (long i = 0; i < 10000; ++i) {
             long[] habits = new long[4000];
             for (int j = 0; j < habits.length; ++j) {
                 habits[j] = (i + j) % 53000;
@@ -88,13 +86,12 @@ public class CompactIndexesTest extends HazelcastTestSupport {
     }
 
     @Test
-    @Ignore("takes really long time to shutdown")
     public void testRandomIds() throws IOException {
         persons.addIndex("habits[any] -> __key?", false);
         Random random = new Random();
 
         long start = System.currentTimeMillis();
-        for (long i = 0; i < 100000; ++i) {
+        for (long i = 0; i < 10000; ++i) {
             long[] habits = new long[4000];
             for (int j = 0; j < habits.length; ++j) {
                 habits[j] = (i + j) % 53000;
@@ -102,7 +99,25 @@ public class CompactIndexesTest extends HazelcastTestSupport {
             long id = random.nextLong() & ~(1L << 63);
             persons.put(id, new Person(id, habits));
         }
-        System.out.println("Ingestion took " + (System.currentTimeMillis() - start));
+        System.out.println("Ingestion took " + (System.currentTimeMillis() - start) + "ms");
+//        System.in.read();
+    }
+
+    @Test
+    public void testRandomObjectIds() throws IOException {
+        persons.addIndex("habits[any] -> stringId!", false);
+        Random random = new Random();
+
+        long start = System.currentTimeMillis();
+        for (long i = 0; i < 10000; ++i) {
+            long[] habits = new long[4000];
+            for (int j = 0; j < habits.length; ++j) {
+                habits[j] = (i + j) % 53000;
+            }
+            long id = random.nextLong() & ~(1L << 63);
+            persons.put(id, new Person(id, habits));
+        }
+        System.out.println("Ingestion took " + (System.currentTimeMillis() - start) + "ms");
 //        System.in.read();
     }
 
@@ -148,9 +163,12 @@ public class CompactIndexesTest extends HazelcastTestSupport {
 
         public final long[] habits;
 
+        public final String stringId;
+
         public Person(long id, long[] habits) {
             this.id = id;
             this.habits = habits;
+            this.stringId = Long.toString(id);
         }
 
         @Override

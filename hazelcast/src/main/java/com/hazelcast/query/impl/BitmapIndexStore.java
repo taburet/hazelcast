@@ -28,6 +28,7 @@ import com.hazelcast.query.impl.predicates.InPredicate;
 import com.hazelcast.query.impl.predicates.NotEqualPredicate;
 import com.hazelcast.query.impl.predicates.OrPredicate;
 import com.hazelcast.util.collection.Long2LongHashMap;
+import com.hazelcast.util.collection.Object2LongHashMap;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,6 +57,7 @@ public class BitmapIndexStore extends BaseIndexStore {
 
     private final Bitmaps<QueryableEntry> bitmaps = new Bitmaps<QueryableEntry>(LOAD_FACTOR);
     private final Long2LongHashMap internalKeys;
+    private final Object2LongHashMap internalObjectKeys;
     private long internalKeyCounter = 0;
 
     public BitmapIndexStore(String keyAttribute, InternalSerializationService serializationService, Extractors extractors) {
@@ -64,9 +66,16 @@ public class BitmapIndexStore extends BaseIndexStore {
             this.keyAttribute = keyAttribute.substring(0, keyAttribute.length() - 1);
             // TODO enforce non-negative keys only (?), see com.hazelcast.util.collection.Long2LongHashMap.missingValue
             this.internalKeys = new Long2LongHashMap(Long2LongHashMap.DEFAULT_INITIAL_CAPACITY, 0.75, -1);
+            this.internalObjectKeys = null;
+        } else if (keyAttribute.endsWith("!")) {
+            this.keyAttribute = keyAttribute.substring(0, keyAttribute.length() - 1);
+            // TODO enforce non-negative keys only (?), see com.hazelcast.util.collection.Object2LongHashMap.missingValue
+            this.internalObjectKeys = new Object2LongHashMap(Long2LongHashMap.DEFAULT_INITIAL_CAPACITY, 0.75F, -1);
+            this.internalKeys = null;
         } else {
             this.keyAttribute = keyAttribute;
             this.internalKeys = null;
+            this.internalObjectKeys = null;
         }
         this.serializationService = serializationService;
         this.extractors = extractors;
@@ -79,57 +88,102 @@ public class BitmapIndexStore extends BaseIndexStore {
         return canonicalizeScalarForStorage(value);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void insert(Object value, QueryableEntry entry, IndexOperationStats operationStats) {
-        long key = extractKey(entry);
-        Iterator values = makeIterator(value);
+        if (internalObjectKeys == null) {
+            long key = extractLongKey(entry);
+            Iterator values = makeIterator(value);
 
-        takeWriteLock();
-        try {
-            if (internalKeys != null) {
-                long internalKey = internalKeyCounter++;
-                long replaced = internalKeys.put(key, internalKey);
-                assert replaced == -1;
-                key = internalKey;
+            takeWriteLock();
+            try {
+                if (internalKeys != null) {
+                    long internalKey = internalKeyCounter++;
+                    long replaced = internalKeys.put(key, internalKey);
+                    assert replaced == -1;
+                    key = internalKey;
+                }
+                bitmaps.insert(values, key, entry);
+            } finally {
+                releaseWriteLock();
             }
-            bitmaps.insert(values, key, entry);
-        } finally {
-            releaseWriteLock();
+        } else {
+            Object key = extractObjectKey(entry);
+            Iterator values = makeIterator(value);
+
+            takeWriteLock();
+            try {
+                long internalKey = internalKeyCounter++;
+                long replaced = internalObjectKeys.put(key, internalKey);
+                assert replaced == -1;
+                bitmaps.insert(values, internalKey, entry);
+            } finally {
+                releaseWriteLock();
+            }
         }
     }
 
     @Override
     public void update(Object oldValue, Object newValue, QueryableEntry entry, IndexOperationStats operationStats) {
-        long key = extractKey(entry);
-        Iterator oldValues = makeIterator(oldValue);
-        Iterator newValues = makeIterator(newValue);
+        if (internalObjectKeys == null) {
+            long key = extractLongKey(entry);
+            Iterator oldValues = makeIterator(oldValue);
+            Iterator newValues = makeIterator(newValue);
 
-        takeWriteLock();
-        try {
-            if (internalKeys != null) {
-                key = internalKeys.get(key);
-                assert key != -1;
+            takeWriteLock();
+            try {
+                if (internalKeys != null) {
+                    key = internalKeys.get(key);
+                    assert key != -1;
+                }
+                bitmaps.update(oldValues, newValues, key, entry);
+            } finally {
+                releaseWriteLock();
             }
-            bitmaps.update(oldValues, newValues, key, entry);
-        } finally {
-            releaseWriteLock();
+        } else {
+            Object key = extractObjectKey(entry);
+            Iterator oldValues = makeIterator(oldValue);
+            Iterator newValues = makeIterator(newValue);
+
+            takeWriteLock();
+            try {
+                long internalKey = internalObjectKeys.get(key);
+                assert internalKey != -1;
+                bitmaps.update(oldValues, newValues, internalKey, entry);
+            } finally {
+                releaseWriteLock();
+            }
         }
     }
 
     @Override
     public void remove(Object value, Data entryKey, Object entryValue, IndexOperationStats operationStats) {
-        long key = extractKey(entryKey, entryValue);
-        Iterator values = makeIterator(value);
+        if (internalObjectKeys == null) {
+            long key = extractLongKey(entryKey, entryValue);
+            Iterator values = makeIterator(value);
 
-        takeWriteLock();
-        try {
-            if (internalKeys != null) {
-                key = internalKeys.remove(key);
-                assert key != -1;
+            takeWriteLock();
+            try {
+                if (internalKeys != null) {
+                    key = internalKeys.remove(key);
+                    assert key != -1;
+                }
+                bitmaps.remove(values, key);
+            } finally {
+                releaseWriteLock();
             }
-            bitmaps.remove(values, key);
-        } finally {
-            releaseWriteLock();
+        } else {
+            Object key = extractObjectKey(entryKey, entryValue);
+            Iterator values = makeIterator(value);
+
+            takeWriteLock();
+            try {
+                long internalKey = internalObjectKeys.remove(key);
+                assert internalKey != -1;
+                bitmaps.remove(values, internalKey);
+            } finally {
+                releaseWriteLock();
+            }
         }
     }
 
@@ -140,6 +194,10 @@ public class BitmapIndexStore extends BaseIndexStore {
             bitmaps.clear();
             if (internalKeys != null) {
                 internalKeys.clear();
+                internalKeyCounter = 0;
+            }
+            if (internalObjectKeys != null) {
+                internalObjectKeys.clear();
                 internalKeyCounter = 0;
             }
         } finally {
@@ -243,27 +301,44 @@ public class BitmapIndexStore extends BaseIndexStore {
         return map;
     }
 
-    private long extractKey(Data entryKey, Object entryValue) {
+    private long extractLongKey(Data entryKey, Object entryValue) {
         Object key =
                 QueryableEntry.extractAttributeValue(extractors, serializationService, keyAttribute, entryKey, entryValue, null);
         if (key == null) {
             throw new NullPointerException("non-null unique key value is required");
         }
         if (!Numbers.isLongRepresentable(key.getClass())) {
-            throw new NullPointerException("integer-value unique key value is required");
+            throw new NullPointerException("integer-valued unique key value is required");
         }
         return ((Number) key).longValue();
     }
 
-    private long extractKey(QueryableEntry entry) {
+    private long extractLongKey(QueryableEntry entry) {
         Object key = entry.getAttributeValue(keyAttribute);
         if (key == null) {
             throw new NullPointerException("non-null unique key value is required");
         }
         if (!Numbers.isLongRepresentable(key.getClass())) {
-            throw new NullPointerException("integer-value unique key value is required");
+            throw new NullPointerException("integer-valued unique key value is required");
         }
         return ((Number) key).longValue();
+    }
+
+    private Object extractObjectKey(Data entryKey, Object entryValue) {
+        Object key =
+                QueryableEntry.extractAttributeValue(extractors, serializationService, keyAttribute, entryKey, entryValue, null);
+        if (key == null) {
+            throw new NullPointerException("non-null unique key value is required");
+        }
+        return key;
+    }
+
+    private Object extractObjectKey(QueryableEntry entry) {
+        Object key = entry.getAttributeValue(keyAttribute);
+        if (key == null) {
+            throw new NullPointerException("non-null unique key value is required");
+        }
+        return key;
     }
 
     private Iterator makeIterator(Object value) {
