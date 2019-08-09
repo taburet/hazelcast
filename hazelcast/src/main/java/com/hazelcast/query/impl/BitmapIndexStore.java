@@ -123,6 +123,7 @@ public class BitmapIndexStore extends BaseIndexStore {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void update(Object oldValue, Object newValue, QueryableEntry entry, IndexOperationStats operationStats) {
         if (internalObjectKeys == null) {
@@ -147,7 +148,7 @@ public class BitmapIndexStore extends BaseIndexStore {
 
             takeWriteLock();
             try {
-                long internalKey = internalObjectKeys.get(key);
+                long internalKey = internalObjectKeys.getValue(key);
                 assert internalKey != -1;
                 bitmaps.update(oldValues, newValues, internalKey, entry);
             } finally {
@@ -156,6 +157,7 @@ public class BitmapIndexStore extends BaseIndexStore {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void remove(Object value, Data entryKey, Object entryValue, IndexOperationStats operationStats) {
         if (internalObjectKeys == null) {
@@ -166,9 +168,13 @@ public class BitmapIndexStore extends BaseIndexStore {
             try {
                 if (internalKeys != null) {
                     key = internalKeys.remove(key);
-                    assert key != -1;
+                    if (key != -1) {
+                        // XXX: see https://github.com/hazelcast/hazelcast/issues/15439
+                        bitmaps.remove(values, key);
+                    }
+                } else {
+                    bitmaps.remove(values, key);
                 }
-                bitmaps.remove(values, key);
             } finally {
                 releaseWriteLock();
             }
@@ -178,9 +184,11 @@ public class BitmapIndexStore extends BaseIndexStore {
 
             takeWriteLock();
             try {
-                long internalKey = internalObjectKeys.remove(key);
-                assert internalKey != -1;
-                bitmaps.remove(values, internalKey);
+                long internalKey = internalObjectKeys.removeKey(key);
+                if (internalKey != -1) {
+                    // XXX: see https://github.com/hazelcast/hazelcast/issues/15439
+                    bitmaps.remove(values, internalKey);
+                }
             } finally {
                 releaseWriteLock();
             }
