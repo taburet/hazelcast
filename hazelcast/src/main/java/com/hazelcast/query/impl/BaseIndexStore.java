@@ -106,6 +106,8 @@ public abstract class BaseIndexStore implements IndexStore {
     @Override
     public void destroy() {
         // nothing to destroy
+        System.out.println("!!! BaseIndexStore.destroy: " + Thread.currentThread());
+        new RuntimeException().printStackTrace(System.out);
     }
 
     Comparable sanitizeValue(Object input) {

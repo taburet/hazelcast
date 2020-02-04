@@ -274,6 +274,10 @@ public final class BitmapIndexStore extends BaseIndexStore {
     @Override
     public void clear() {
         takeWriteLock();
+
+        System.out.println("!!! BitmapIndexStore.clear: " + Thread.currentThread());
+        new RuntimeException().printStackTrace(System.out);
+
         try {
             bitmap.clear();
             if (internalKeys != null) {
