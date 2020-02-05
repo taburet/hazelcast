@@ -77,6 +77,8 @@ class MapMigrationAwareService implements FragmentedMigrationAwareService {
 
     @Override
     public void beforeMigration(PartitionMigrationEvent event) {
+        System.out.println("!!! MapMigrationAwareService.beforeMigration: " + event);
+
         if (isLocalPromotion(event)) {
             // It's a local partition promotion. We need to populate non-global indexes here since
             // there is no map replication performed in this case. Global indexes are populated
@@ -149,6 +151,8 @@ class MapMigrationAwareService implements FragmentedMigrationAwareService {
 
     @Override
     public void commitMigration(PartitionMigrationEvent event) {
+        System.out.println("!!! MapMigrationAwareService.commitMigration: " + event);
+
         if (event.getMigrationEndpoint() == DESTINATION) {
             populateIndexes(event, TargetIndexes.GLOBAL);
         } else {
