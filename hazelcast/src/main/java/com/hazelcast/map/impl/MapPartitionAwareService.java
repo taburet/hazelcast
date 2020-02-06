@@ -19,12 +19,14 @@ package com.hazelcast.map.impl;
 import com.hazelcast.core.DistributedObject;
 import com.hazelcast.map.impl.proxy.MapProxyImpl;
 import com.hazelcast.cluster.Address;
+import com.hazelcast.map.impl.recordstore.RecordStore;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.internal.partition.PartitionAwareService;
 import com.hazelcast.spi.impl.proxyservice.ProxyService;
 import com.hazelcast.internal.partition.IPartitionLostEvent;
 
 import java.util.Collection;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Defines partition-aware operations' behavior of map service.
@@ -46,8 +48,15 @@ class MapPartitionAwareService implements PartitionAwareService {
 
     @Override
     public void onPartitionLost(IPartitionLostEvent partitionLostEvent) {
+        System.out.println("!!! MapPartitionAwareService.onPartitionLost: " + partitionLostEvent);
+
         final Address thisAddress = nodeEngine.getThisAddress();
         final int partitionId = partitionLostEvent.getPartitionId();
+
+        ConcurrentMap<String, RecordStore> maps = mapServiceContext.getPartitionContainer(partitionId).getMaps();
+        for (RecordStore recordStore : maps.values()) {
+            System.out.println("!!! " + recordStore.getName() + ": " + recordStore.size());
+        }
 
         Collection<DistributedObject> result = proxyService.getDistributedObjects(MapService.SERVICE_NAME);
 
