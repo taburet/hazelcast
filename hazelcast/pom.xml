@@ -315,6 +315,12 @@
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>sizeof</artifactId>
+            <version>0.3.0</version>
+        </dependency>
+
         <!-- needed for thread affinity -->
         <dependency>
             <groupId>net.openhft</groupId>

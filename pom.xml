@@ -123,7 +123,7 @@
 
         <!-- Additional JVM system arguments -->
         <extraVmArgs/>
-        <vmHeapSettings>-Xms512m -Xmx2G</vmHeapSettings>
+        <vmHeapSettings>-Xms512m -Xmx8G</vmHeapSettings>
         <!-- Java 9+ module system args to be appended during surefire/failsafe executions. -->
         <javaModuleArgs/>
     </properties>
@@ -471,7 +471,7 @@
         <profile>
             <id>LOCAL</id>
             <properties>
-                <vmHeapSettings>-Xms128m -Xmx1G</vmHeapSettings>
+                <vmHeapSettings>-Xms128m -Xmx8G</vmHeapSettings>
             </properties>
             <build>
                 <plugins>
@@ -543,7 +543,7 @@
         <profile>
             <id>test-coverage-Local</id>
             <properties>
-                <vmHeapSettings>-Xms128m -Xmx1G</vmHeapSettings>
+                <vmHeapSettings>-Xms128m -Xmx8G</vmHeapSettings>
             </properties>
             <build>
                 <plugins>
@@ -1058,7 +1058,7 @@
             <!-- for compatibility testing -->
             <id>generate-compatibility-samples</id>
             <properties>
-                <vmHeapSettings>-Xms128m -Xmx1G</vmHeapSettings>
+                <vmHeapSettings>-Xms128m -Xmx8G</vmHeapSettings>
             </properties>
             <build>
                 <plugins>

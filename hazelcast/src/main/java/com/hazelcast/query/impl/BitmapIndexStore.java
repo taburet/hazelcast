@@ -16,6 +16,7 @@
 
 package com.hazelcast.query.impl;
 
+import com.hazelcast.SizeOf;
 import com.hazelcast.config.IndexConfig;
 import com.hazelcast.core.TypeConverter;
 import com.hazelcast.internal.json.NonTerminalJsonValue;
@@ -108,6 +109,8 @@ public final class BitmapIndexStore extends BaseIndexStore {
                 throw new IllegalArgumentException(
                         "unexpected unique key transform: " + config.getBitmapIndexOptions().getUniqueKeyTransformation());
         }
+
+        SizeOf.INSTANCE.addRoot(this);
     }
 
     @Override

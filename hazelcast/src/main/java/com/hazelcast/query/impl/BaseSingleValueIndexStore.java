@@ -16,6 +16,7 @@
 
 package com.hazelcast.query.impl;
 
+import com.hazelcast.SizeOf;
 import com.hazelcast.internal.json.NonTerminalJsonValue;
 import com.hazelcast.internal.monitor.impl.IndexOperationStats;
 import com.hazelcast.internal.serialization.Data;
@@ -34,6 +35,7 @@ public abstract class BaseSingleValueIndexStore extends BaseIndexStore {
 
     BaseSingleValueIndexStore(IndexCopyBehavior copyOn) {
         super(copyOn);
+        SizeOf.INSTANCE.addRoot(this);
     }
 
     /**
