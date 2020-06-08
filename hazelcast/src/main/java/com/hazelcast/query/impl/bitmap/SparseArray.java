@@ -16,6 +16,8 @@
 
 package com.hazelcast.query.impl.bitmap;
 
+import com.hazelcast.Unowned;
+
 /**
  * Stores values of type {@code E} indexable by non-negative {@code long}
  * indexes.
@@ -49,6 +51,7 @@ final class SparseArray<E> {
 
     // used for caching of the last resolved storage
     private int lastPrefix = -1;
+    @Unowned
     private SparseIntArray<E> lastStorage;
 
     /**

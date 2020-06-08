@@ -48,7 +48,7 @@ public final class SizeOf {
 
     public static final SizeOf INSTANCE = new SizeOf(TimeUnit.SECONDS.toMillis(2));
 
-    private static final org.ehcache.sizeof.SizeOf EHC_SIZE_OF = new UnsafeSizeOf(new CombinationSizeOfFilter(), true, false);
+    private static final org.ehcache.sizeof.SizeOf SHALLOW_SIZE_OF = new UnsafeSizeOf(new CombinationSizeOfFilter(), true, false);
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     private final long interval;
@@ -91,20 +91,15 @@ public final class SizeOf {
                     }
 
                     long start = System.currentTimeMillis();
-                    Record record = roots.get(root);
 
-//                    Deque<Object> unvisited = new LinkedList<>();
-//                    unvisited.add(root);
-//                    Set<Object> known = Collections.newSetFromMap(new IdentityHashMap<>());
-//                    known.add(root);
-//                    Record newRecord = sizeOf(unvisited, known);
+//                    Record newRecord = sizeOf(root, Collections.newSetFromMap(new IdentityHashMap<>()));
 
-                    Deque<Object> unvisited = new LinkedList<>();
-                    unvisited.add(root);
-                    BloomFilter known =
-                            new BloomFilter(record == null ? 1_000 : Math.max(1_000, record.count + record.count / 4), 0.1);
-                    known.add(root);
-                    Record newRecord = sizeOf(unvisited, known);
+//                    Record record = roots.get(root);
+//                    BloomFilter known =
+//                            new BloomFilter(record == null ? 1_000 : Math.max(1_000, record.count + record.count / 4), 0.1);
+//                    Record newRecord = sizeOf(root, known);
+
+                    Record newRecord = sizeOf(root);
 
                     DecimalFormat formatter = (DecimalFormat) NumberFormat.getInstance(Locale.US);
                     DecimalFormatSymbols symbols = formatter.getDecimalFormatSymbols();
@@ -125,7 +120,12 @@ public final class SizeOf {
             }
         }
 
-        private Record sizeOf(Deque<Object> unvisited, BloomFilter known) {
+        private Record sizeOf(Object root, BloomFilter known) {
+            known.add(root);
+
+            Deque<Object> unvisited = new LinkedList<>();
+            unvisited.add(root);
+
             long size = 0;
             int count = 0;
 
@@ -136,7 +136,7 @@ public final class SizeOf {
                 Class<?> class_ = object.getClass();
 
                 if (class_.isArray()) {
-                    size += EHC_SIZE_OF.sizeOf(object);
+                    size += SHALLOW_SIZE_OF.sizeOf(object);
 
                     if (!class_.getComponentType().isPrimitive()) {
                         Object[] array = (Object[]) object;
@@ -170,7 +170,12 @@ public final class SizeOf {
             return record;
         }
 
-        private Record sizeOf(Deque<Object> unvisited, Set<Object> known) {
+        private Record sizeOf(Object root, Set<Object> known) {
+            known.add(root);
+
+            Deque<Object> unvisited = new LinkedList<>();
+            unvisited.add(root);
+
             long size = 0;
             int count = 0;
 
@@ -181,7 +186,7 @@ public final class SizeOf {
                 Class<?> class_ = object.getClass();
 
                 if (class_.isArray()) {
-                    size += EHC_SIZE_OF.sizeOf(object);
+                    size += SHALLOW_SIZE_OF.sizeOf(object);
 
                     if (!class_.getComponentType().isPrimitive()) {
                         Object[] array = (Object[]) object;
@@ -199,6 +204,54 @@ public final class SizeOf {
                         try {
                             Object subObject = reference.invoke(object);
                             if (!blacklisted(subObject) && known.add(subObject)) {
+                                unvisited.add(subObject);
+                            }
+                        } catch (Throwable throwable) {
+                            //noinspection ThrowablePrintedToSystemOut
+                            System.out.println(throwable);
+                        }
+                    }
+                }
+            }
+
+            Record record = new Record();
+            record.size = size;
+            record.count = count;
+            return record;
+        }
+
+        private Record sizeOf(Object root) {
+            Deque<Object> unvisited = new LinkedList<>();
+            unvisited.add(root);
+
+            long size = 0;
+            int count = 0;
+
+            while (!unvisited.isEmpty()) {
+                ++count;
+
+                Object object = unvisited.removeLast();
+                Class<?> class_ = object.getClass();
+
+                if (class_.isArray()) {
+                    size += SHALLOW_SIZE_OF.sizeOf(object);
+
+                    if (!class_.getComponentType().isPrimitive()) {
+                        Object[] array = (Object[]) object;
+                        for (Object element : array) {
+                            if (!blacklisted(element)) {
+                                unvisited.add(element);
+                            }
+                        }
+                    }
+                } else {
+                    ClassLayout classLayout = ClassLayout.of(object);
+
+                    size += classLayout.shallowSize();
+                    for (MethodHandle reference : classLayout.references()) {
+                        try {
+                            Object subObject = reference.invoke(object);
+                            if (!blacklisted(subObject)) {
                                 unvisited.add(subObject);
                             }
                         } catch (Throwable throwable) {
@@ -223,7 +276,7 @@ public final class SizeOf {
         private static final MethodHandle[] EMPTY_REFERENCES = new MethodHandle[0];
 
         static ClassLayout of(Object object) {
-            return LAYOUTS.computeIfAbsent(object.getClass(), k -> new ClassLayout(k, EHC_SIZE_OF.sizeOf(object)));
+            return LAYOUTS.computeIfAbsent(object.getClass(), k -> new ClassLayout(k, SHALLOW_SIZE_OF.sizeOf(object)));
         }
 
         private final long shallowSize;
@@ -263,6 +316,17 @@ public final class SizeOf {
                 if (type.isPrimitive()) {
                     continue;
                 }
+
+                if (field.isAnnotationPresent(Unowned.class)) {
+                    continue;
+                }
+
+                if (field.isSynthetic()) {
+                    assert field.getName().startsWith("this$");
+                    continue;
+                }
+
+                //System.out.println(field);
 
                 field.setAccessible(true);
                 try {

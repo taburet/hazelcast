@@ -17,6 +17,7 @@
 package com.hazelcast.query.impl;
 
 import com.hazelcast.SizeOf;
+import com.hazelcast.Unowned;
 import com.hazelcast.config.IndexConfig;
 import com.hazelcast.core.TypeConverter;
 import com.hazelcast.internal.json.NonTerminalJsonValue;
@@ -72,7 +73,9 @@ public final class BitmapIndexStore extends BaseIndexStore {
     }
 
     private final String keyAttribute;
+    @Unowned
     private final InternalSerializationService serializationService;
+    @Unowned
     private final Extractors extractors;
 
     private final Bitmap<QueryableEntry> bitmap = new Bitmap<>();

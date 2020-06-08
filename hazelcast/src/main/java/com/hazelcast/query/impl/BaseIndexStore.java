@@ -16,6 +16,7 @@
 
 package com.hazelcast.query.impl;
 
+import com.hazelcast.Unowned;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.util.Clock;
 import com.hazelcast.map.impl.record.Record;
@@ -38,8 +39,11 @@ public abstract class BaseIndexStore implements IndexStore {
 
     static final float LOAD_FACTOR = 0.75F;
 
+    @Unowned
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    @Unowned
     private final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
+    @Unowned
     private final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 
     private final CopyFunctor<Data, QueryableEntry> resultCopyFunctor;
@@ -327,7 +331,11 @@ public abstract class BaseIndexStore implements IndexStore {
                 public void remove() {
                     delegateIterator.remove();
                 }
+
             }
+
         }
+
     }
+
 }

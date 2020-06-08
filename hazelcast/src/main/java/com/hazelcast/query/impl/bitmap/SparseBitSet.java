@@ -16,6 +16,8 @@
 
 package com.hazelcast.query.impl.bitmap;
 
+import com.hazelcast.Unowned;
+
 import static com.hazelcast.query.impl.bitmap.BitmapUtils.capacityDeltaInt;
 import static com.hazelcast.query.impl.bitmap.BitmapUtils.capacityDeltaShort;
 import static com.hazelcast.query.impl.bitmap.BitmapUtils.toUnsignedInt;
@@ -82,6 +84,7 @@ final class SparseBitSet {
 
     // used for caching of the last resolved 32-bit storage
     private int lastPrefix = -1;
+    @Unowned
     private Storage32 lastStorage;
 
     /**

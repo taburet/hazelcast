@@ -50,7 +50,8 @@ public class SizeOfTest extends HazelcastTestSupport {
     @Test
     public void test() throws InterruptedException {
         for (int i = 0; i < 1_000_000; ++i) {
-            map.put(i, i);
+            int v = random.nextInt(10_000_000);
+            map.put(v, v);
         }
 
         System.out.println(map.getLocalMapStats().getIndexStats());
