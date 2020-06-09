@@ -19,6 +19,7 @@ package com.hazelcast.map.impl;
 import com.hazelcast.config.InMemoryFormat;
 
 import static com.hazelcast.config.InMemoryFormat.BINARY;
+import static com.hazelcast.config.InMemoryFormat.OBJECT;
 
 /**
  * Static factory methods for various entry cost estimators.
@@ -36,8 +37,11 @@ public final class OwnedEntryCostEstimatorFactory {
     public static <K, V> EntryCostEstimator<K, V> createMapSizeEstimator(InMemoryFormat inMemoryFormat) {
         if (BINARY.equals(inMemoryFormat)) {
             return (EntryCostEstimator<K, V>) new BinaryMapEntryCostEstimator();
+        } else if (OBJECT.equals(inMemoryFormat)) {
+            return (EntryCostEstimator<K, V>) new ObjectMapEntryCostEstimator();
+        } else {
+            return ZERO_SIZE_ESTIMATOR;
         }
-        return ZERO_SIZE_ESTIMATOR;
     }
 
     private static class ZeroEntryCostEstimator

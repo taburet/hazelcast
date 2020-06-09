@@ -396,12 +396,61 @@ public final class SizeOf {
 
     }
 
-    private static final class Record {
+    public static final class Record {
 
-        long size;
+        public long size;
 
-        int count;
+        public  int count;
 
     }
 
+    public static Record sizeOf(Object root, Set<Object> known) {
+        known.add(root);
+
+        Deque<Object> unvisited = new LinkedList<>();
+        unvisited.add(root);
+
+        long size = 0;
+        int count = 0;
+
+        while (!unvisited.isEmpty()) {
+            ++count;
+
+            Object object = unvisited.removeLast();
+            Class<?> class_ = object.getClass();
+
+            if (class_.isArray()) {
+                size += SHALLOW_SIZE_OF.sizeOf(object);
+
+                if (!class_.getComponentType().isPrimitive()) {
+                    Object[] array = (Object[]) object;
+                    for (Object element : array) {
+                        if (!blacklisted(element) && known.add(element)) {
+                            unvisited.add(element);
+                        }
+                    }
+                }
+            } else {
+                ClassLayout classLayout = ClassLayout.of(object);
+
+                size += classLayout.shallowSize();
+                for (MethodHandle reference : classLayout.references()) {
+                    try {
+                        Object subObject = reference.invoke(object);
+                        if (!blacklisted(subObject) && known.add(subObject)) {
+                            unvisited.add(subObject);
+                        }
+                    } catch (Throwable throwable) {
+                        //noinspection ThrowablePrintedToSystemOut
+                        System.out.println(throwable);
+                    }
+                }
+            }
+        }
+
+        Record record = new Record();
+        record.size = size;
+        record.count = count;
+        return record;
+    }
 }

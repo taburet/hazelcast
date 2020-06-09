@@ -16,22 +16,30 @@
 
 package com.hazelcast.map.impl;
 
+import com.hazelcast.SizeOf;
 import com.hazelcast.config.InMemoryFormat;
-import com.hazelcast.map.impl.record.Record;
-import com.hazelcast.internal.serialization.Data;
+
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 
 /**
- * Owned entry cost estimator for maps which have {@link InMemoryFormat#BINARY} memory-format.
+ * Owned entry cost estimator for maps which have {@link InMemoryFormat#OBJECT} memory-format.
  */
-class BinaryMapEntryCostEstimator
-        extends AbstractMapEntryCostEstimator<Record> {
+class ObjectMapEntryCostEstimator
+        extends AbstractMapEntryCostEstimator<Object> {
 
-    BinaryMapEntryCostEstimator() {
+    private static ThreadLocal<Set<Object>> IDENTITY_SET = ThreadLocal.withInitial(
+            () -> Collections.newSetFromMap(new IdentityHashMap<>()));
+
+    ObjectMapEntryCostEstimator() {
     }
 
     @Override
-    public long calculateValueCost(Record value) {
-        return value.getCost();
+    public long calculateValueCost(Object value) {
+        final Set<Object> visited = IDENTITY_SET.get();
+        visited.clear();
+        return SizeOf.sizeOf(value, visited).size;
     }
 
 }
