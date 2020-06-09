@@ -23,7 +23,7 @@ import static com.hazelcast.internal.util.JVMUtil.REFERENCE_COST_IN_BYTES;
 
 public abstract class AbstractMapEntryCostEstimator<V> implements EntryCostEstimator<Data, V> {
 
-    private static final int HASH_ENTRY_HASH_COST_IN_BYTES = REFERENCE_COST_IN_BYTES;
+    private static final int HASH_ENTRY_HASH_COST_IN_BYTES = 4;
     private static final int HASH_ENTRY_VALUE_REF_COST_IN_BYTES = REFERENCE_COST_IN_BYTES;
     private static final int HASH_ENTRY_KEY_REF_COST_IN_BYTES = REFERENCE_COST_IN_BYTES;
     private static final int HASH_ENTRY_NEXT_REF_COST_IN_BYTES = REFERENCE_COST_IN_BYTES;
