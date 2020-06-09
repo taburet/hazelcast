@@ -31,8 +31,10 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -92,14 +94,17 @@ public final class SizeOf {
 
                     long start = System.currentTimeMillis();
 
-//                    Record newRecord = sizeOf(root, Collections.newSetFromMap(new IdentityHashMap<>()));
+                    // IdentityHashMap
+                    Record newRecord = sizeOf(root, Collections.newSetFromMap(new IdentityHashMap<>()));
 
+                    // Bloom
 //                    Record record = roots.get(root);
 //                    BloomFilter known =
-//                            new BloomFilter(record == null ? 1_000 : Math.max(1_000, record.count + record.count / 4), 0.1);
+//                            new BloomFilter(record == null ? 1_000 : Math.max(1_000, record.count + record.count / 4), 0.01);
 //                    Record newRecord = sizeOf(root, known);
 
-                    Record newRecord = sizeOf(root);
+                    // Unowned
+//                    Record newRecord = sizeOf(root);
 
                     DecimalFormat formatter = (DecimalFormat) NumberFormat.getInstance(Locale.US);
                     DecimalFormatSymbols symbols = formatter.getDecimalFormatSymbols();
@@ -321,10 +326,10 @@ public final class SizeOf {
                     continue;
                 }
 
-                if (field.isSynthetic()) {
-                    assert field.getName().startsWith("this$");
-                    continue;
-                }
+//                if (field.isSynthetic()) {
+//                    assert field.getName().startsWith("this$");
+//                    continue;
+//                }
 
                 //System.out.println(field);
 
@@ -344,7 +349,7 @@ public final class SizeOf {
 
     private static boolean blacklisted(Object object) {
         return object == null || object instanceof QueryableEntry || object instanceof InternalSerializationService
-                || object instanceof Data;
+                || object instanceof Data || object instanceof Thread;
     }
 
     private static final class BloomFilter {

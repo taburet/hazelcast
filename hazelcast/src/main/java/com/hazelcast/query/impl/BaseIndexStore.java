@@ -46,6 +46,7 @@ public abstract class BaseIndexStore implements IndexStore {
     @Unowned
     private final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 
+    @Unowned
     private final CopyFunctor<Data, QueryableEntry> resultCopyFunctor;
 
     /**
